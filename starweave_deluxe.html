@@ -1,0 +1,2630 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+<title>Starweave — Deluxe Constellation Workshop</title>
+<style>
+/* ============================================================
+   STARWEAVE — Aesthetic system
+   Refined celestial / luxury cosmic.
+   No web fonts (system stack only), no external assets.
+   Palette: deep midnight void, jewel-tone resource accents,
+   gold primary, off-white text.
+   ============================================================ */
+
+:root{
+  /* Surfaces */
+  --void-0:#06051a;
+  --void-1:#0a0820;
+  --void-2:#10102c;
+  --panel:rgba(16,14,38,0.72);
+  --panel-strong:rgba(22,18,52,0.86);
+  --line:rgba(180,168,255,0.08);
+  --line-strong:rgba(200,184,255,0.18);
+
+  /* Text */
+  --text:#ece8ff;
+  --text-dim:#a09bc8;
+  --text-faint:#5b557a;
+
+  /* Resources */
+  --gold:#e8b95a;       /* stardust */
+  --gold-soft:#f4d390;
+  --cyan:#9cd0ff;       /* luminance */
+  --cyan-soft:#cce5ff;
+  --rose:#dc92e6;       /* resonance */
+  --rose-soft:#f0b8f6;
+  --violet:#9c8df5;     /* voidsilver */
+  --violet-soft:#bfb0ff;
+
+  /* Effects */
+  --shadow-glow:0 0 24px rgba(120,100,220,0.22), 0 0 60px rgba(60,40,160,0.12);
+  --shadow-card:0 2px 12px rgba(0,0,0,0.5),0 0 0 1px rgba(180,160,255,0.06) inset;
+  --serif:'Didot','Bodoni 72','Hoefler Text','Big Caslon',Georgia,serif;
+  --sans:'Trebuchet MS','Lucida Sans Unicode','Lucida Grande',system-ui,sans-serif;
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{
+  width:100%;height:100%;overflow:hidden;
+  background:var(--void-0);color:var(--text);
+  font-family:var(--sans);
+  -webkit-font-smoothing:antialiased;
+  user-select:none;-webkit-user-select:none;
+  cursor:default;
+}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+
+/* ============================================================
+   Canvas + ambient background
+   ============================================================ */
+#game{
+  position:absolute;inset:0;width:100%;height:100%;
+  background:
+    radial-gradient(ellipse 60% 50% at 50% 40%, #1a1438 0%, #0a0820 55%, #06051a 100%);
+  cursor:default;
+}
+#game.placing{cursor:crosshair}
+
+/* Subtle vignette + grain overlay on top of canvas */
+.vignette{
+  position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.55) 100%);
+  z-index:5;
+}
+
+/* ============================================================
+   UI layer
+   ============================================================ */
+.ui{position:absolute;inset:0;pointer-events:none;z-index:10}
+.ui > *{pointer-events:auto}
+
+/* ---------------- Resource bar (top-center) ---------------- */
+.resource-bar{
+  position:absolute;top:18px;left:50%;transform:translateX(-50%);
+  display:flex;gap:8px;align-items:center;
+  padding:10px 14px;
+  background:var(--panel);
+  backdrop-filter:blur(14px) saturate(1.1);
+  -webkit-backdrop-filter:blur(14px) saturate(1.1);
+  border:1px solid var(--line-strong);
+  border-radius:14px;
+  box-shadow:var(--shadow-card);
+}
+.res{
+  display:flex;align-items:center;gap:8px;
+  padding:6px 14px 6px 10px;
+  border-radius:10px;
+  min-width:130px;
+  position:relative;
+  transition:background .25s;
+}
+.res:hover{background:rgba(255,255,255,0.03)}
+.res + .res{border-left:1px solid var(--line)}
+.res .glyph{
+  width:22px;height:22px;display:grid;place-items:center;
+  filter:drop-shadow(0 0 6px currentColor);
+}
+.res .glyph svg{width:100%;height:100%}
+.res .val{
+  font-family:var(--serif);
+  font-size:18px;font-weight:400;letter-spacing:0.5px;
+  font-variant-numeric:tabular-nums;
+  min-width:60px;
+}
+.res .rate{
+  font-size:10px;color:var(--text-faint);
+  margin-left:auto;font-variant-numeric:tabular-nums;
+  letter-spacing:0.5px;
+}
+.res.stardust{color:var(--gold)}
+.res.luminance{color:var(--cyan)}
+.res.resonance{color:var(--rose)}
+.res.voidsilver{color:var(--violet)}
+.res .val{color:var(--text)}
+.res.locked{opacity:0.28}
+.res.locked .val,.res.locked .rate{visibility:hidden}
+.res.locked .glyph::after{
+  content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(45deg,transparent 0 3px,rgba(255,255,255,0.08) 3px 6px);
+  border-radius:6px;
+}
+.res-flash{animation:flash .5s ease-out}
+@keyframes flash{0%{transform:scale(1.18)}100%{transform:scale(1)}}
+
+/* ---------------- Build panel (left) ---------------- */
+.side-panel{
+  position:absolute;
+  background:var(--panel);
+  backdrop-filter:blur(14px) saturate(1.1);
+  -webkit-backdrop-filter:blur(14px) saturate(1.1);
+  border:1px solid var(--line-strong);
+  border-radius:14px;
+  box-shadow:var(--shadow-card);
+  padding:14px;
+}
+.panel-title{
+  font-family:var(--serif);
+  font-size:16px;letter-spacing:2.5px;
+  text-transform:uppercase;color:var(--text-dim);
+  padding-bottom:10px;margin-bottom:10px;
+  border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:8px;
+}
+.panel-title::before{
+  content:'';width:5px;height:5px;border-radius:50%;
+  background:var(--gold);box-shadow:0 0 8px var(--gold);
+}
+
+.build-panel{left:18px;top:90px;width:240px}
+.build-list{display:flex;flex-direction:column;gap:6px}
+.build-item{
+  display:grid;grid-template-columns:36px 1fr;gap:10px;
+  padding:10px;border-radius:10px;
+  border:1px solid transparent;
+  background:rgba(255,255,255,0.015);
+  cursor:pointer;transition:all .18s;
+  align-items:center;
+}
+.build-item:hover:not(.disabled){
+  background:rgba(255,255,255,0.04);
+  border-color:var(--line-strong);
+  transform:translateX(2px);
+}
+.build-item.selected{
+  background:rgba(232,185,90,0.08);
+  border-color:rgba(232,185,90,0.4);
+  box-shadow:0 0 0 1px rgba(232,185,90,0.15) inset, 0 0 14px rgba(232,185,90,0.15);
+}
+.build-item.disabled{opacity:0.35;cursor:not-allowed}
+.build-item .icon{
+  width:36px;height:36px;display:grid;place-items:center;
+  border-radius:8px;
+  background:rgba(255,255,255,0.03);
+  border:1px solid var(--line);
+}
+.build-item .icon svg{width:22px;height:22px}
+.build-item .name{
+  font-size:13px;letter-spacing:0.4px;color:var(--text);
+}
+.build-item .meta{
+  font-size:10px;color:var(--text-faint);
+  display:flex;gap:6px;margin-top:3px;
+  font-variant-numeric:tabular-nums;
+}
+.build-item .meta b{font-weight:400}
+.cost-stardust{color:var(--gold)}
+.cost-luminance{color:var(--cyan)}
+.cost-resonance{color:var(--rose)}
+.cost-voidsilver{color:var(--violet)}
+.cost-fail{color:#e07a7a !important}
+
+/* ---------------- Objectives (right) ---------------- */
+.objective-panel{right:18px;top:90px;width:260px}
+.obj-list{display:flex;flex-direction:column;gap:8px}
+.obj{
+  padding:10px;border-radius:10px;
+  background:rgba(255,255,255,0.015);
+  border:1px solid var(--line);
+  font-size:12px;line-height:1.5;
+}
+.obj.complete{
+  opacity:0.55;
+  text-decoration:line-through;
+  text-decoration-color:rgba(255,255,255,0.2);
+}
+.obj-title{font-size:13px;letter-spacing:0.3px;color:var(--text);margin-bottom:4px}
+.obj-desc{color:var(--text-dim)}
+.obj-prog{
+  margin-top:6px;height:3px;border-radius:2px;
+  background:rgba(255,255,255,0.06);overflow:hidden;
+}
+.obj-prog div{
+  height:100%;background:linear-gradient(90deg,var(--gold) 0%,var(--cyan) 100%);
+  border-radius:2px;transition:width .4s;
+  box-shadow:0 0 6px rgba(255,200,100,0.25);
+}
+
+/* ---------------- Constellations (right, below objectives) ---------------- */
+.constellation-panel{right:18px;bottom:18px;width:260px;max-height:46vh;overflow:hidden;display:flex;flex-direction:column}
+.const-list{display:flex;flex-direction:column;gap:6px;overflow-y:auto;padding-right:4px}
+.const-list::-webkit-scrollbar{width:6px}
+.const-list::-webkit-scrollbar-thumb{background:rgba(180,160,255,0.15);border-radius:3px}
+.const-list::-webkit-scrollbar-track{background:transparent}
+.const{
+  padding:9px 10px;border-radius:10px;
+  background:rgba(255,255,255,0.018);
+  border:1px solid var(--line);
+  display:flex;flex-direction:column;gap:5px;
+  position:relative;
+  transition:all .2s;
+}
+.const.affordable{
+  border-color:rgba(232,185,90,0.35);
+  background:rgba(232,185,90,0.05);
+  cursor:pointer;
+}
+.const.affordable:hover{
+  background:rgba(232,185,90,0.1);
+  transform:translateY(-1px);
+}
+.const.lit{
+  opacity:0.55;
+  background:rgba(156,208,255,0.04);
+  border-color:rgba(156,208,255,0.15);
+}
+.const .row{display:flex;align-items:center;justify-content:space-between}
+.const .name{
+  font-family:var(--serif);font-size:15px;
+  letter-spacing:1px;color:var(--text);
+}
+.const.lit .name{color:var(--cyan-soft)}
+.const .myth{font-size:10px;color:var(--text-faint);font-style:italic;line-height:1.4}
+.const .cost{
+  font-size:10px;color:var(--text-dim);
+  display:flex;gap:8px;flex-wrap:wrap;
+  font-variant-numeric:tabular-nums;
+}
+.const .unlock{
+  font-size:9px;color:var(--gold-soft);letter-spacing:1px;
+  text-transform:uppercase;opacity:0.8;
+}
+.const .check{
+  width:18px;height:18px;display:grid;place-items:center;
+  color:var(--cyan);font-size:14px;
+}
+
+/* ---------------- Upgrade popup (center on click) ---------------- */
+.upgrade-popup{
+  position:absolute;
+  background:var(--panel-strong);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+  border:1px solid var(--line-strong);
+  border-radius:14px;
+  padding:14px;width:240px;
+  box-shadow:var(--shadow-card),var(--shadow-glow);
+  display:none;
+  z-index:20;
+}
+.upgrade-popup.open{display:block;animation:popIn .22s ease}
+@keyframes popIn{from{opacity:0;transform:scale(0.95) translateY(4px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.up-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.up-header .icon{width:36px;height:36px;display:grid;place-items:center;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid var(--line)}
+.up-header .info{flex:1}
+.up-header .name{font-family:var(--serif);font-size:16px;letter-spacing:0.5px}
+.up-header .level{font-size:10px;color:var(--text-dim);letter-spacing:2px;text-transform:uppercase}
+.up-stats{
+  font-size:11px;color:var(--text-dim);
+  padding:8px 10px;border-radius:8px;
+  background:rgba(255,255,255,0.02);
+  margin-bottom:10px;line-height:1.6;
+}
+.up-stats b{color:var(--text);font-weight:400}
+.up-btn{
+  width:100%;padding:9px;
+  background:linear-gradient(180deg,rgba(232,185,90,0.18),rgba(232,185,90,0.08));
+  border:1px solid rgba(232,185,90,0.35);
+  border-radius:8px;
+  color:var(--gold-soft);
+  font-size:12px;letter-spacing:1px;text-transform:uppercase;
+  transition:all .18s;
+  font-family:var(--sans);
+}
+.up-btn:hover:not(:disabled){
+  background:linear-gradient(180deg,rgba(232,185,90,0.28),rgba(232,185,90,0.14));
+  transform:translateY(-1px);
+}
+.up-btn:disabled{opacity:0.4;cursor:not-allowed}
+.up-btn.demolish{
+  background:rgba(220,80,80,0.05);
+  border-color:rgba(220,80,80,0.25);
+  color:#e07a7a;
+  margin-top:6px;
+}
+.up-btn.demolish:hover{background:rgba(220,80,80,0.12)}
+
+/* ---------------- Tooltip (free-floating) ---------------- */
+.tooltip{
+  position:absolute;pointer-events:none;
+  background:var(--panel-strong);
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+  border:1px solid var(--line-strong);
+  border-radius:10px;
+  padding:10px 12px;
+  font-size:12px;line-height:1.5;
+  max-width:240px;
+  box-shadow:var(--shadow-card);
+  z-index:25;display:none;
+}
+.tooltip.show{display:block}
+.tt-title{font-family:var(--serif);font-size:14px;letter-spacing:0.5px;margin-bottom:4px}
+.tt-desc{color:var(--text-dim);font-size:11px;line-height:1.55}
+.tt-stats{margin-top:6px;color:var(--text-dim);font-size:11px}
+.tt-stats span{color:var(--text)}
+
+/* ---------------- Toast notifications (bottom-center) ---------------- */
+.toasts{
+  position:absolute;left:50%;bottom:28px;transform:translateX(-50%);
+  display:flex;flex-direction:column;gap:6px;align-items:center;
+  pointer-events:none;z-index:30;
+}
+.toast{
+  padding:10px 18px;border-radius:10px;
+  background:var(--panel-strong);
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+  border:1px solid var(--line-strong);
+  font-size:12px;letter-spacing:0.5px;
+  box-shadow:var(--shadow-card);
+  animation:toastIn .35s ease, toastOut .4s ease 3.5s forwards;
+  white-space:nowrap;
+}
+.toast.gold{border-color:rgba(232,185,90,0.35);color:var(--gold-soft)}
+.toast.cyan{border-color:rgba(156,208,255,0.35);color:var(--cyan-soft)}
+.toast.rose{border-color:rgba(220,146,230,0.35);color:var(--rose-soft)}
+@keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes toastOut{to{opacity:0;transform:translateY(-6px)}}
+
+/* ---------------- Top-right controls ---------------- */
+.controls{
+  position:absolute;top:18px;right:18px;display:flex;gap:6px;
+}
+.ctrl-btn{
+  width:36px;height:36px;display:grid;place-items:center;
+  background:var(--panel);
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+  border:1px solid var(--line-strong);
+  border-radius:10px;
+  color:var(--text-dim);
+  transition:all .18s;
+}
+.ctrl-btn:hover{color:var(--text);background:var(--panel-strong)}
+.ctrl-btn.danger:hover{color:#e07a7a;border-color:rgba(220,80,80,0.4)}
+
+/* ---------------- Title (bottom-left, brand mark) ---------------- */
+.brand{
+  position:absolute;left:18px;bottom:18px;
+  pointer-events:none;
+  opacity:0.65;
+}
+.brand .mark{
+  font-family:var(--serif);
+  font-size:24px;letter-spacing:6px;
+  color:var(--text);
+}
+.brand .sub{
+  font-size:9px;letter-spacing:4px;color:var(--text-faint);
+  text-transform:uppercase;margin-top:2px;
+}
+
+/* ---------------- Welcome / offline modal ---------------- */
+.modal-back{
+  position:absolute;inset:0;
+  background:rgba(6,5,26,0.7);backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+  display:none;align-items:center;justify-content:center;z-index:50;
+}
+.modal-back.open{display:flex}
+.modal{
+  background:var(--panel-strong);
+  border:1px solid var(--line-strong);
+  border-radius:18px;
+  padding:32px 36px;max-width:480px;
+  text-align:center;
+  box-shadow:var(--shadow-card),var(--shadow-glow);
+}
+.modal h1{
+  font-family:var(--serif);
+  font-size:36px;letter-spacing:8px;
+  font-weight:400;margin-bottom:6px;
+}
+.modal .tag{
+  font-size:11px;letter-spacing:4px;color:var(--text-faint);
+  text-transform:uppercase;margin-bottom:20px;
+}
+.modal p{
+  font-size:13px;color:var(--text-dim);
+  line-height:1.7;margin-bottom:8px;
+}
+.modal .accent{color:var(--gold-soft)}
+.modal-btn{
+  margin-top:22px;padding:11px 28px;
+  background:linear-gradient(180deg,rgba(232,185,90,0.2),rgba(232,185,90,0.1));
+  border:1px solid rgba(232,185,90,0.4);
+  border-radius:10px;
+  color:var(--gold-soft);
+  letter-spacing:3px;text-transform:uppercase;font-size:11px;
+}
+.modal-btn:hover{background:linear-gradient(180deg,rgba(232,185,90,0.3),rgba(232,185,90,0.16))}
+
+/* Responsive: shrink panels on small screens */
+@media (max-width:900px){
+  .build-panel,.objective-panel{width:200px}
+  .constellation-panel{width:200px}
+  .panel-title{font-size:13px;letter-spacing:2px}
+  .res{min-width:100px;padding:5px 10px}
+  .res .val{font-size:16px}
+  .brand{display:none}
+}
+@media (max-width:680px){
+  .objective-panel{display:none}
+  .constellation-panel{display:none}
+  .build-panel{width:180px}
+}
+
+
+/* ============================================================
+   DELUXE EXPANSION — game-layer UI, active play, guidance
+   ============================================================ */
+.guide-panel{
+  left:18px;bottom:92px;width:280px;
+  background:linear-gradient(180deg,rgba(24,20,58,0.88),rgba(13,11,34,0.74));
+}
+.guide-step{
+  font-size:12px;line-height:1.55;color:var(--text-dim);
+}
+.guide-step b{color:var(--gold-soft);font-weight:400}
+.guide-next{
+  margin-top:10px;padding:10px;border-radius:10px;
+  border:1px solid rgba(232,185,90,0.22);
+  background:rgba(232,185,90,0.055);
+}
+.guide-next .label{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--gold-soft);margin-bottom:4px}
+.guide-next .body{font-size:12px;line-height:1.45;color:var(--text)}
+.guide-meter{height:5px;border-radius:4px;background:rgba(255,255,255,0.06);overflow:hidden;margin-top:8px}
+.guide-meter div{height:100%;background:linear-gradient(90deg,var(--gold),var(--cyan));box-shadow:0 0 10px rgba(232,185,90,.45)}
+.world-status{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.status-card{padding:8px;border:1px solid var(--line);border-radius:9px;background:rgba(255,255,255,.018)}
+.status-card .k{font-size:9px;letter-spacing:1.4px;text-transform:uppercase;color:var(--text-faint)}
+.status-card .v{font-family:var(--serif);font-size:17px;color:var(--text);margin-top:2px}
+.status-card.warn .v{color:#e89a9a}
+.action-dock{
+  position:absolute;left:50%;bottom:22px;transform:translateX(-50%);
+  display:flex;gap:8px;align-items:stretch;
+  padding:9px;background:var(--panel);border:1px solid var(--line-strong);border-radius:16px;
+  backdrop-filter:blur(14px) saturate(1.1);-webkit-backdrop-filter:blur(14px) saturate(1.1);
+  box-shadow:var(--shadow-card),0 0 26px rgba(90,70,190,.12);
+}
+.action-btn{
+  min-width:132px;padding:10px 12px;border-radius:12px;
+  border:1px solid rgba(200,184,255,0.16);
+  background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.012));
+  transition:all .18s;position:relative;overflow:hidden;
+}
+.action-btn:hover:not(:disabled){transform:translateY(-1px);border-color:rgba(232,185,90,.34);background:linear-gradient(180deg,rgba(232,185,90,.12),rgba(232,185,90,.035))}
+.action-btn:disabled{opacity:.38;cursor:not-allowed}
+.action-btn .a-title{display:block;font-size:11px;letter-spacing:1.8px;text-transform:uppercase;color:var(--text)}
+.action-btn .a-sub{display:block;font-size:9px;color:var(--text-faint);margin-top:4px;letter-spacing:.4px}
+.action-btn.ready{border-color:rgba(232,185,90,.42);box-shadow:0 0 16px rgba(232,185,90,.12) inset}
+.action-btn.cooling::after{content:'';position:absolute;left:0;bottom:0;height:2px;width:var(--cool,0%);background:linear-gradient(90deg,var(--cyan),var(--gold));}
+.research-panel{
+  left:278px;top:90px;width:250px;max-height:46vh;overflow:hidden;display:none;flex-direction:column;
+}
+.research-panel.open{display:flex}
+.research-list{display:flex;flex-direction:column;gap:7px;overflow:auto;padding-right:4px}
+.research-card{padding:9px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.018);transition:all .18s;text-align:left}
+.research-card.affordable{border-color:rgba(156,208,255,.32);background:rgba(156,208,255,.055)}
+.research-card.affordable:hover{transform:translateY(-1px);background:rgba(156,208,255,.09)}
+.research-card.done{opacity:.55;border-color:rgba(156,208,255,.17)}
+.research-card .r-name{font-family:var(--serif);font-size:14px;letter-spacing:.8px;color:var(--text)}
+.research-card .r-desc{font-size:10.5px;line-height:1.45;color:var(--text-dim);margin-top:4px}
+.research-card .r-cost{font-size:10px;margin-top:6px;display:flex;gap:7px;flex-wrap:wrap}
+.event-banner{
+  position:absolute;top:72px;left:50%;transform:translateX(-50%) translateY(-8px);
+  padding:9px 18px;border-radius:999px;border:1px solid rgba(232,185,90,.3);
+  background:rgba(18,14,44,.72);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  color:var(--gold-soft);font-size:11px;letter-spacing:2px;text-transform:uppercase;
+  opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;box-shadow:var(--shadow-card),0 0 22px rgba(232,185,90,.12);
+}
+.event-banner.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.floating-text-layer{position:absolute;inset:0;pointer-events:none;z-index:40;overflow:hidden}
+.float-text{position:absolute;font-family:var(--serif);font-size:18px;letter-spacing:.7px;text-shadow:0 0 12px currentColor;animation:floatUp 1.25s ease-out forwards;white-space:nowrap}
+@keyframes floatUp{0%{opacity:0;transform:translate(-50%,8px) scale(.92)}15%{opacity:1}100%{opacity:0;transform:translate(-50%,-42px) scale(1.05)}}
+.pulse-ring{position:absolute;border:1px solid currentColor;border-radius:50%;width:42px;height:42px;transform:translate(-50%,-50%);animation:ringOut 1.1s ease-out forwards;pointer-events:none;z-index:39;color:var(--gold-soft)}
+@keyframes ringOut{from{opacity:.9;width:18px;height:18px}to{opacity:0;width:110px;height:110px}}
+@media (max-width:1100px){.research-panel{left:18px;top:390px;width:240px}.guide-panel{display:none}.action-btn{min-width:112px}.action-dock{bottom:12px}}
+@media (max-width:760px){.action-dock{left:8px;right:8px;transform:none;overflow-x:auto}.action-btn{min-width:118px}.research-panel{display:none!important}}
+
+</style>
+</head>
+<body>
+
+<canvas id="game"></canvas>
+<div class="vignette"></div>
+
+<div class="ui">
+
+  <!-- Resource bar -->
+  <div class="resource-bar" id="resourceBar"></div>
+
+  <!-- Top-right controls -->
+  <div class="controls">
+    <button class="ctrl-btn" id="pauseBtn" title="Pause">
+      <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="6" y="5" width="2.5" height="10" rx="0.5"/><rect x="11.5" y="5" width="2.5" height="10" rx="0.5"/>
+      </svg>
+    </button>
+    <button class="ctrl-btn danger" id="resetBtn" title="Reset save">
+      <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M4 10a6 6 0 1 0 2-4.5"/><path d="M4 4v3h3"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Brand -->
+  <div class="brand">
+    <div class="mark">STARWEAVE</div>
+    <div class="sub">A Workshop of Sleeping Stars</div>
+  </div>
+
+  <!-- Build panel -->
+  <div class="side-panel build-panel">
+    <div class="panel-title">Forge</div>
+    <div class="build-list" id="buildList"></div>
+  </div>
+
+  <!-- Objectives -->
+  <div class="side-panel objective-panel">
+    <div class="panel-title">Threads</div>
+    <div class="obj-list" id="objList"></div>
+  </div>
+
+  <!-- Constellations -->
+  <div class="side-panel constellation-panel">
+    <div class="panel-title">Sleeping Stars</div>
+    <div class="const-list" id="constList"></div>
+  </div>
+
+
+
+  <!-- Deluxe guidance, research and active actions -->
+  <div class="side-panel guide-panel" id="guidePanel">
+    <div class="panel-title">Guidance</div>
+    <div id="guideContent"></div>
+  </div>
+
+  <div class="side-panel research-panel" id="researchPanel">
+    <div class="panel-title">Research</div>
+    <div class="research-list" id="researchList"></div>
+  </div>
+
+  <div class="event-banner" id="eventBanner"></div>
+  <div class="action-dock" id="actionDock"></div>
+  <div class="floating-text-layer" id="floatingTextLayer"></div>
+
+  <!-- Upgrade popup -->
+  <div class="upgrade-popup" id="upgradePopup"></div>
+
+  <!-- Tooltip -->
+  <div class="tooltip" id="tooltip"></div>
+
+  <!-- Toasts -->
+  <div class="toasts" id="toasts"></div>
+
+</div>
+
+<!-- Welcome modal -->
+<div class="modal-back" id="modalBack">
+  <div class="modal" id="modal">
+    <h1>STARWEAVE</h1>
+    <div class="tag">A workshop of sleeping stars</div>
+    <p>The night sky has dimmed. <span class="accent">Eight constellations sleep</span>, awaiting the touch of a Weaver.</p>
+    <p>Build a small machine in the void. Gather stardust, refine it into luminance, weave resonance — and pour it into ancient anchors to rekindle the heavens.</p>
+    <p style="font-size:11px;color:var(--text-faint);margin-top:14px">Click an empty hex to place. Click a structure to upgrade.</p>
+    <button class="modal-btn" id="beginBtn">Begin</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* ================================================================
+   STARWEAVE — Prototype
+   ----------------------------------------------------------------
+   Architecture overview:
+   - HexGrid: pointy-top axial coordinates, render + pick math.
+   - DATA: building definitions, constellation definitions, objectives.
+   - State: mutable game state (resources, tiles, etc.)
+   - Simulation: ticks at TICK_HZ Hz. Production / adjacency logic.
+   - Particles: glowing flows between producers & consumers.
+   - Rendering: starfield, hex grid, buildings, particles, constellations.
+   - UI: imperative DOM updates against state (no framework needed).
+   - SaveLoad: localStorage; applies offline time on boot.
+   ================================================================ */
+
+// ----------------------------------------------------------------
+// CONSTANTS
+// ----------------------------------------------------------------
+const HEX_SIZE      = 38;          // hex circumradius
+const HEX_W         = Math.sqrt(3) * HEX_SIZE;
+const HEX_H         = 2 * HEX_SIZE;
+const TICK_HZ       = 4;           // 4 sim ticks per second
+const TICK_MS       = 1000 / TICK_HZ;
+const AUTO_SAVE_MS  = 15000;
+const MAX_OFFLINE_S = 8 * 3600;    // cap offline progress at 8 hours
+const SAVE_KEY      = 'starweave_save_v2';
+
+// Hex neighbor offsets in axial (q, r)
+const NEIGHBORS = [
+  {q:+1,r: 0},{q:+1,r:-1},{q: 0,r:-1},
+  {q:-1,r: 0},{q:-1,r:+1},{q: 0,r:+1},
+];
+
+// ----------------------------------------------------------------
+// DATA — Buildings
+// Each building has tier definitions (production, adjacency, cost).
+// Production rates expressed as units per SECOND. Multiplied by dt in sim.
+// ----------------------------------------------------------------
+const BUILDINGS = {
+  collector: {
+    id:'collector',
+    name:'Stardust Spire',
+    short:'Harvests stardust from the void.',
+    desc:'A slender spire of black glass. Pulls raw stardust from the surrounding dark. Place anywhere — needs no input.',
+    color:'#e8b95a',
+    accent:'#f4d390',
+    baseCost:{stardust:10},
+    costGrowth:1.55,            // per existing building of this type
+    tiers:[
+      {produces:{stardust:1.0}, upgradeCost:{stardust:40}},
+      {produces:{stardust:3.0}, upgradeCost:{stardust:240,luminance:30}},
+      {produces:{stardust:8.0}, upgradeCost:null},
+    ],
+    unlocked:true,
+    icon:'star',
+  },
+  furnace: {
+    id:'furnace',
+    name:'Lumen Furnace',
+    short:'Refines stardust into luminance.',
+    desc:'A small forge of cold fire. Refines stardust drawn from the global stockpile into luminance. Consumes stardust while it operates.',
+    color:'#9cd0ff',
+    accent:'#cce5ff',
+    baseCost:{stardust:35},
+    costGrowth:1.6,
+    consumes:{stardust:1.5},    // per second (capped by available stockpile in sim)
+    tiers:[
+      {produces:{luminance:0.45}, upgradeCost:{stardust:150,luminance:25}},
+      {produces:{luminance:1.20}, upgradeCost:{stardust:800,luminance:200,resonance:8}},
+      {produces:{luminance:3.00}, upgradeCost:null},
+    ],
+    unlocked:false,
+    icon:'diamond',
+  },
+  resonator: {
+    id:'resonator',
+    name:'Resonator',
+    short:'Weaves luminance into resonance.',
+    desc:'A tuning crystal. Consumes luminance and produces resonance. Gains +35% output per adjacent Resonator — chain them for compounding harmony.',
+    color:'#dc92e6',
+    accent:'#f0b8f6',
+    baseCost:{luminance:60},
+    costGrowth:1.55,
+    consumes:{luminance:1.0},
+    adjacencyBonus:{type:'resonator',perNeighbor:0.35},
+    tiers:[
+      {produces:{resonance:0.10}, upgradeCost:{stardust:600,luminance:200,resonance:15}},
+      {produces:{resonance:0.28}, upgradeCost:{stardust:3500,luminance:1400,resonance:120}},
+      {produces:{resonance:0.75}, upgradeCost:null},
+    ],
+    unlocked:false,
+    icon:'rings',
+  },
+  conduit: {
+    id:'conduit',
+    name:'Aether Conduit',
+    short:'Boosts adjacent buildings.',
+    desc:'A circle of polished hex-iron. Does not produce. Boosts every adjacent structure by +30% (per tier of Conduit). Stacks with multiple conduits.',
+    color:'#bfb0ff',
+    accent:'#dfd2ff',
+    baseCost:{stardust:120,luminance:40},
+    costGrowth:1.5,
+    auraBonus:{perTier:0.30},
+    tiers:[
+      {produces:{}, upgradeCost:{stardust:600,luminance:200,resonance:10}},
+      {produces:{}, upgradeCost:{stardust:3000,luminance:1200,resonance:80}},
+      {produces:{}, upgradeCost:null},
+    ],
+    unlocked:false,
+    icon:'hexring',
+  },
+  voidsiphon: {
+    id:'voidsiphon',
+    name:'Void Siphon',
+    short:'Distills void into silver.',
+    desc:'A funnel of negative starlight. Slowly produces voidsilver. Gains +20% per non-adjacent empty tile within range 2 — give it room.',
+    color:'#9c8df5',
+    accent:'#c4b8ff',
+    baseCost:{luminance:400,resonance:30},
+    costGrowth:1.6,
+    tiers:[
+      {produces:{voidsilver:0.02}, upgradeCost:{luminance:2500,resonance:150,voidsilver:10}},
+      {produces:{voidsilver:0.07}, upgradeCost:{luminance:12000,resonance:800,voidsilver:80}},
+      {produces:{voidsilver:0.20}, upgradeCost:null},
+    ],
+    unlocked:false,
+    icon:'siphon',
+  },
+};
+
+// ----------------------------------------------------------------
+// DATA — Constellations
+// Stars positioned in normalized 0..1 sky coords; sky is drawn behind grid.
+// Cost escalates; final Polaris is the prototype's victory milestone.
+// ----------------------------------------------------------------
+const CONSTELLATIONS = [
+  {
+    id:'lyra',
+    name:'Lyra',
+    myth:'The first lyre, plucked once by a child in the dark.',
+    cost:{stardust:40},
+    unlock:{building:'furnace',radius:2},
+    region:{x:0.18,y:0.18,w:0.18,h:0.16},
+    stars:[[.1,.2],[.35,.1],[.55,.3],[.7,.55],[.45,.7],[.3,.9]],
+    lines:[[0,1],[1,2],[2,3],[3,4],[4,5]],
+  },
+  {
+    id:'aquila',
+    name:'Aquila',
+    myth:'A great bird that once carried lightning between worlds.',
+    cost:{stardust:300,luminance:60},
+    unlock:{building:'resonator',radius:3},
+    region:{x:0.72,y:0.18,w:0.22,h:0.18},
+    stars:[[.0,.4],[.25,.5],[.5,.45],[.7,.3],[.85,.5],[.55,.7],[.3,.85]],
+    lines:[[0,1],[1,2],[2,3],[3,4],[2,5],[5,6]],
+  },
+  {
+    id:'cygnus',
+    name:'Cygnus',
+    myth:'A swan that carries lost songs across the void.',
+    cost:{stardust:1400,luminance:400,resonance:20},
+    unlock:{building:'conduit'},
+    region:{x:0.08,y:0.55,w:0.22,h:0.22},
+    stars:[[.5,.1],[.45,.35],[.4,.6],[.2,.55],[.7,.6],[.35,.85],[.1,.75],[.9,.78]],
+    lines:[[0,1],[1,2],[2,3],[2,4],[2,5],[3,6],[4,7]],
+  },
+  {
+    id:'orion',
+    name:'Orion',
+    myth:'The hunter who walks the winter sky.',
+    cost:{stardust:6000,luminance:2200,resonance:120},
+    unlock:{radius:4},
+    region:{x:0.4,y:0.62,w:0.24,h:0.22},
+    stars:[[.2,.1],[.55,.15],[.85,.05],[.3,.45],[.5,.5],[.7,.45],[.25,.85],[.55,.8],[.78,.9]],
+    lines:[[0,3],[1,4],[2,5],[3,4],[4,5],[3,6],[4,7],[5,8],[6,7],[7,8]],
+  },
+  {
+    id:'cassiopeia',
+    name:'Cassiopeia',
+    myth:'A queen tied to her throne, dragged across the wheel.',
+    cost:{stardust:22000,luminance:9000,resonance:500},
+    unlock:{building:'voidsiphon'},
+    region:{x:0.74,y:0.6,w:0.2,h:0.18},
+    stars:[[.05,.5],[.3,.2],[.55,.55],[.78,.2],[.95,.6]],
+    lines:[[0,1],[1,2],[2,3],[3,4]],
+  },
+  {
+    id:'draco',
+    name:'Draco',
+    myth:'The serpent coiled around the pole.',
+    cost:{stardust:90000,luminance:35000,resonance:2200,voidsilver:60},
+    unlock:{radius:5},
+    region:{x:0.04,y:0.05,w:0.16,h:0.42},
+    stars:[[.5,.05],[.3,.18],[.55,.3],[.35,.45],[.6,.55],[.4,.7],[.55,.85],[.3,.95]],
+    lines:[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7]],
+  },
+  {
+    id:'andromeda',
+    name:'Andromeda',
+    myth:'A neighbouring island of fire, suddenly bright.',
+    cost:{stardust:350000,luminance:140000,resonance:9000,voidsilver:300},
+    unlock:{upgradeMax:3},
+    region:{x:0.84,y:0.04,w:0.14,h:0.32},
+    stars:[[.5,.05],[.3,.25],[.7,.3],[.15,.45],[.5,.55],[.85,.55],[.4,.8],[.7,.85]],
+    lines:[[0,1],[0,2],[1,3],[1,4],[2,4],[2,5],[4,6],[4,7]],
+  },
+  {
+    id:'polaris',
+    name:'Polaris',
+    myth:'The eternal light. The axis on which all the rest turn.',
+    cost:{stardust:2000000,luminance:800000,resonance:50000,voidsilver:2000},
+    unlock:{victory:true},
+    region:{x:0.42,y:0.04,w:0.16,h:0.14},
+    stars:[[.5,.5]],
+    lines:[],
+    isFinal:true,
+  },
+];
+
+// ----------------------------------------------------------------
+// DATA — Objectives
+// Tracked goals visible in side panel. Some auto-complete on milestone.
+// ----------------------------------------------------------------
+const OBJECTIVES = [
+  {id:'first_stardust', title:'Gather 30 Stardust', desc:'Place spires. Wait.', check: s => s.stats.maxStardust>=30, target:30, getProgress:s=>Math.min(s.stats.maxStardust,30)},
+  {id:'three_collectors',title:'Build 3 Stardust Spires', desc:'Spires generate the raw material of the sky.', check:s=>countBuildings(s,'collector')>=3, target:3, getProgress:s=>countBuildings(s,'collector')},
+  {id:'light_lyra',     title:'Reignite Lyra', desc:'Spend stardust at the constellation anchor.', check:s=>isLit(s,'lyra')},
+  {id:'first_furnace',  title:'Place a Lumen Furnace', desc:'Adjacency to a spire is helpful but not required.', check:s=>countBuildings(s,'furnace')>=1},
+  {id:'first_luminance',title:'Gather 50 Luminance', desc:'Refined starlight. Cooler. Stranger.', check:s=>s.stats.maxLuminance>=50, target:50, getProgress:s=>Math.min(s.stats.maxLuminance,50)},
+  {id:'light_aquila',   title:'Reignite Aquila', desc:'The second sleeper stirs.', check:s=>isLit(s,'aquila')},
+  {id:'chain_three',    title:'Chain 3 Resonators', desc:'Adjacency makes them sing.', check:s=>maxResonatorChain(s)>=3},
+  {id:'light_cygnus',   title:'Reignite Cygnus', desc:'The swan opens its wings.', check:s=>isLit(s,'cygnus')},
+  {id:'one_conduit',    title:'Place an Aether Conduit', desc:'A multiplier worth thinking about.', check:s=>countBuildings(s,'conduit')>=1},
+  {id:'light_orion',    title:'Reignite Orion', desc:'A warrior wakes.', check:s=>isLit(s,'orion')},
+  {id:'first_void',     title:'Distill 5 Voidsilver', desc:'Cold currency.', check:s=>s.stats.maxVoidsilver>=5, target:5, getProgress:s=>Math.min(s.stats.maxVoidsilver,5)},
+  {id:'light_polaris',  title:'Reignite Polaris', desc:'Restore the axis of the sky.', check:s=>isLit(s,'polaris')},
+];
+
+// ----------------------------------------------------------------
+// STATE
+// ----------------------------------------------------------------
+function makeFreshState(){
+  return {
+    resources:{stardust:0, luminance:0, resonance:0, voidsilver:0},
+    tiles:{},                 // key 'q,r' -> {type, level, ownerId}
+    nextBuildingId:1,
+    constLit:{},              // id -> true
+    buildRadius:1,            // unlocked range (starts tight — Lyra opens it up)
+    upgradeMax:2,             // current tier cap (1..3)
+    objectivesDone:{},        // id -> true
+    unlockedBuildings:{collector:true},
+    selected:null,            // building id to place next
+    paused:false,
+    stats:{maxStardust:0,maxLuminance:0,maxResonance:0,maxVoidsilver:0,totalLit:0},
+    lastTick:Date.now(),
+    lastSave:Date.now(),
+    victory:false,
+  };
+}
+
+let state = makeFreshState();
+
+// Place starter Spire at origin so player has visible production
+function seedFreshGame(){
+  state.tiles['0,0'] = {type:'collector', level:1, id:state.nextBuildingId++, placedAt:Date.now()};
+  state.resources.stardust = 8;
+}
+
+// ----------------------------------------------------------------
+// HEX MATH
+// ----------------------------------------------------------------
+function hexKey(q,r){return q+','+r}
+function axialToPixel(q,r){
+  return {x: HEX_W*(q + r/2), y: HEX_SIZE*1.5*r};
+}
+function pixelToAxial(x,y){
+  // inverse of pointy-top axial -> pixel
+  const r = y / (HEX_SIZE*1.5);
+  const q = (x - HEX_W*r/2) / HEX_W;
+  return roundAxial(q,r);
+}
+function roundAxial(q,r){
+  // cube round
+  const x=q, z=r, y=-x-z;
+  let rx=Math.round(x), ry=Math.round(y), rz=Math.round(z);
+  const dx=Math.abs(rx-x), dy=Math.abs(ry-y), dz=Math.abs(rz-z);
+  if(dx>dy && dx>dz) rx = -ry-rz;
+  else if(dy>dz) ry = -rx-rz;
+  else rz = -rx-ry;
+  return {q:rx, r:rz};
+}
+function hexDistance(q1,r1,q2,r2){
+  return (Math.abs(q1-q2) + Math.abs(q1+r1-q2-r2) + Math.abs(r1-r2)) / 2;
+}
+function neighborsOf(q,r){
+  return NEIGHBORS.map(n=>({q:q+n.q, r:r+n.r}));
+}
+function isInBuildRadius(q,r){
+  return hexDistance(q,r,0,0) <= state.buildRadius;
+}
+function isInWorld(q,r){
+  // Max world radius is determined by max constellation unlock (5)
+  return hexDistance(q,r,0,0) <= 5;
+}
+
+// ----------------------------------------------------------------
+// HELPERS
+// ----------------------------------------------------------------
+function countBuildings(s, type){
+  let n=0;
+  for(const k in s.tiles){ if(s.tiles[k].type===type) n++; }
+  return n;
+}
+function isLit(s, id){ return !!s.constLit[id] }
+function constById(id){ return CONSTELLATIONS.find(c=>c.id===id) }
+function buildingCost(type){
+  const b = BUILDINGS[type];
+  const n = countBuildings(state, type);
+  const mult = Math.pow(b.costGrowth, n);
+  const cost = {};
+  for(const k in b.baseCost){ cost[k] = Math.ceil(b.baseCost[k]*mult); }
+  return cost;
+}
+function canAfford(cost){
+  for(const k in cost){ if(state.resources[k] < cost[k]) return false; }
+  return true;
+}
+function spend(cost){
+  for(const k in cost){ state.resources[k] -= cost[k]; }
+}
+function gain(res){
+  for(const k in res){
+    state.resources[k] += res[k];
+    if(state.resources[k] > state.stats['max'+k[0].toUpperCase()+k.slice(1)])
+      state.stats['max'+k[0].toUpperCase()+k.slice(1)] = state.resources[k];
+  }
+}
+function maxResonatorChain(s){
+  // Largest cluster of connected resonators (BFS)
+  const visited = {}; let best=0;
+  for(const k in s.tiles){
+    if(s.tiles[k].type==='resonator' && !visited[k]){
+      let count=0; const queue=[k]; visited[k]=true;
+      while(queue.length){
+        const cur=queue.shift(); count++;
+        const [q,r]=cur.split(',').map(Number);
+        for(const n of neighborsOf(q,r)){
+          const nk = hexKey(n.q,n.r);
+          if(s.tiles[nk] && s.tiles[nk].type==='resonator' && !visited[nk]){
+            visited[nk]=true; queue.push(nk);
+          }
+        }
+      }
+      if(count>best) best=count;
+    }
+  }
+  return best;
+}
+
+// ----------------------------------------------------------------
+// SIMULATION
+// Run N seconds of simulation in fixed step. Used for both live ticks
+// and offline catch-up.
+// ----------------------------------------------------------------
+function computeTileRate(key, tile){
+  // Returns {produces:{}, consumes:{}, multiplier}
+  const def = BUILDINGS[tile.type];
+  const tier = def.tiers[tile.level-1];
+  const [q,r] = key.split(',').map(Number);
+
+  // Adjacency bonus (e.g. resonator chains)
+  let bonus = 0;
+  if(def.adjacencyBonus){
+    for(const n of neighborsOf(q,r)){
+      const nk = hexKey(n.q,n.r);
+      if(state.tiles[nk] && state.tiles[nk].type===def.adjacencyBonus.type){
+        bonus += def.adjacencyBonus.perNeighbor;
+      }
+    }
+  }
+  // Conduit aura
+  let aura = 0;
+  for(const n of neighborsOf(q,r)){
+    const nk = hexKey(n.q,n.r);
+    if(state.tiles[nk] && state.tiles[nk].type==='conduit'){
+      const ct = state.tiles[nk];
+      aura += BUILDINGS.conduit.auraBonus.perTier * ct.level;
+    }
+  }
+  // Void Siphon bonus (open space around)
+  let space = 0;
+  if(tile.type==='voidsiphon'){
+    let empty=0;
+    for(let dq=-2;dq<=2;dq++)for(let dr=-2;dr<=2;dr++){
+      if(hexDistance(0,0,dq,dr)>2)continue;
+      if(dq===0&&dr===0)continue;
+      const nk=hexKey(q+dq,r+dr);
+      if(!state.tiles[nk] && isInBuildRadius(q+dq,r+dr)) empty++;
+    }
+    space = empty*0.04;
+  }
+  const mult = 1 + bonus + aura + space;
+  return {produces: tier.produces, consumes: def.consumes, mult};
+}
+
+function simulate(dtSec){
+  // dtSec can be large during offline catch-up. We do single-step
+  // physics; resources are smooth, so this is fine.
+  // Pass 1: total demand & supply
+  const consumeTotal = {stardust:0,luminance:0,resonance:0,voidsilver:0};
+  const produceTotal = {stardust:0,luminance:0,resonance:0,voidsilver:0};
+  const perTile = [];
+  for(const k in state.tiles){
+    const tile = state.tiles[k];
+    const def = BUILDINGS[tile.type];
+    const r = computeTileRate(k, tile);
+    perTile.push({k, tile, r});
+    if(r.consumes){
+      for(const c in r.consumes){ consumeTotal[c] += r.consumes[c] * dtSec; }
+    }
+    for(const p in r.produces){
+      produceTotal[p] += (r.produces[p]||0) * r.mult * dtSec;
+    }
+  }
+
+  // Throttle: if we'd consume more than we have, scale produce/consume down
+  // by per-resource ratio. Simple, robust, and feels fair.
+  const scale = {stardust:1,luminance:1,resonance:1,voidsilver:1};
+  for(const k in consumeTotal){
+    const need = consumeTotal[k];
+    if(need <= 0) continue;
+    const avail = state.resources[k] + (produceTotal[k]||0);
+    if(need > avail){
+      scale[k] = avail / need;
+      if(scale[k]<0) scale[k]=0;
+    }
+  }
+
+  // Apply
+  for(const k in consumeTotal){
+    state.resources[k] -= consumeTotal[k] * scale[k];
+  }
+  for(const k in produceTotal){
+    // Production from buildings that consume X is scaled by scale[X]
+    // For simplicity: scale a building's production by the min scale
+    // of its consumed inputs.
+  }
+  // Re-walk per tile to apply scaled production
+  for(const pt of perTile){
+    const r = pt.r;
+    let s = 1;
+    if(r.consumes){
+      for(const c in r.consumes){ if(scale[c]<s) s=scale[c]; }
+    }
+    for(const p in r.produces){
+      const amount = (r.produces[p]||0) * r.mult * dtSec * s;
+      state.resources[p] = (state.resources[p]||0) + amount;
+      const statKey = 'max'+p[0].toUpperCase()+p.slice(1);
+      if(state.resources[p] > state.stats[statKey]) state.stats[statKey] = state.resources[p];
+      // Emit a particle occasionally for live ticks
+      if(dtSec < 1 && amount > 0 && Math.random() < Math.min(0.5, amount*1.2)){
+        emitProductionParticle(pt.k, p);
+      }
+    }
+  }
+
+  // Clamp to >= 0
+  for(const k in state.resources){ if(state.resources[k]<0) state.resources[k]=0; }
+}
+
+// Per-resource current rate (display only)
+function currentRates(){
+  const rate = {stardust:0,luminance:0,resonance:0,voidsilver:0};
+  const consume = {stardust:0,luminance:0,resonance:0,voidsilver:0};
+  for(const k in state.tiles){
+    const r = computeTileRate(k, state.tiles[k]);
+    if(r.consumes) for(const c in r.consumes) consume[c]+=r.consumes[c];
+    for(const p in r.produces) rate[p]+=(r.produces[p]||0)*r.mult;
+  }
+  return {
+    stardust: rate.stardust - consume.stardust,
+    luminance: rate.luminance - consume.luminance,
+    resonance: rate.resonance - consume.resonance,
+    voidsilver: rate.voidsilver - consume.voidsilver,
+  };
+}
+
+// ----------------------------------------------------------------
+// PARTICLE FLOWS
+// Small glowing dots flying upward from production tiles for feedback.
+// ----------------------------------------------------------------
+const particles = [];
+const RESOURCE_COLORS = {
+  stardust:'#f4d390', luminance:'#cce5ff', resonance:'#f0b8f6', voidsilver:'#bfb0ff'
+};
+function emitProductionParticle(tileKey, resource){
+  const [q,r] = tileKey.split(',').map(Number);
+  const p = axialToPixel(q,r);
+  particles.push({
+    x:p.x + (Math.random()-0.5)*HEX_SIZE*0.6,
+    y:p.y + (Math.random()-0.5)*HEX_SIZE*0.6,
+    vx:(Math.random()-0.5)*0.25,
+    vy:-0.4 - Math.random()*0.4,
+    life:1, fade:0.012 + Math.random()*0.008,
+    size:1.5 + Math.random()*1.5,
+    color:RESOURCE_COLORS[resource] || '#ffffff',
+  });
+}
+function emitBurst(x,y,color,count){
+  for(let i=0;i<count;i++){
+    const ang = Math.random()*Math.PI*2;
+    const sp = 0.6 + Math.random()*1.6;
+    particles.push({
+      x,y,
+      vx:Math.cos(ang)*sp, vy:Math.sin(ang)*sp,
+      life:1, fade:0.008+Math.random()*0.01,
+      size:1+Math.random()*2.5,
+      color,
+    });
+  }
+}
+function updateParticles(dt){
+  for(let i=particles.length-1;i>=0;i--){
+    const p = particles[i];
+    p.x += p.vx*dt*60; p.y += p.vy*dt*60;
+    p.vy += 0.0008*dt*60;
+    p.life -= p.fade*dt*60;
+    if(p.life<=0) particles.splice(i,1);
+  }
+}
+
+// ----------------------------------------------------------------
+// RENDERING
+// ----------------------------------------------------------------
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+let W=0, H=0, DPR=1, viewCx=0, viewCy=0;
+let now = 0;
+
+// Background starfield (pre-generated, deterministic seed)
+const bgStars = [];
+let starsRng = mulberry32(7741);
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+for(let i=0;i<320;i++){
+  bgStars.push({
+    x:starsRng(), y:starsRng(),
+    size:starsRng()*1.3 + 0.3,
+    twinkle:starsRng()*Math.PI*2,
+    speed:0.3 + starsRng()*0.7,
+    color: starsRng()<0.1 ? '#cce5ff' : starsRng()<0.1 ? '#f4d390' : '#ffffff',
+  });
+}
+
+// Hover state
+let hoverHex = null;          // {q,r} or null
+let hoverScreen = {x:0,y:0};
+let mouseInside = false;
+let upgradePopupTile = null;  // tile key when popup open
+
+function resize(){
+  DPR = Math.min(window.devicePixelRatio||1, 2);
+  W = window.innerWidth; H = window.innerHeight;
+  canvas.width = W*DPR; canvas.height = H*DPR;
+  canvas.style.width = W+'px'; canvas.style.height = H+'px';
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  viewCx = W/2; viewCy = H/2 + 10;
+}
+window.addEventListener('resize', resize);
+
+function drawBackground(){
+  // gradient set via CSS, just draw stars + drift
+  const t = now*0.0002;
+  for(const s of bgStars){
+    const sx = s.x*W;
+    const sy = s.y*H;
+    const a = 0.35 + 0.45*Math.sin(now*0.001*s.speed + s.twinkle);
+    ctx.fillStyle = s.color;
+    ctx.globalAlpha = a*0.7;
+    ctx.beginPath(); ctx.arc(sx,sy,s.size,0,Math.PI*2); ctx.fill();
+    if(s.size>1){
+      ctx.globalAlpha = a*0.25;
+      ctx.beginPath(); ctx.arc(sx,sy,s.size*3,0,Math.PI*2); ctx.fill();
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawConstellationsSky(){
+  // For each constellation, place its stars in its region.
+  for(const c of CONSTELLATIONS){
+    const lit = state.constLit[c.id];
+    const reg = c.region;
+    const rx = reg.x*W, ry = reg.y*H, rw = reg.w*W, rh = reg.h*H;
+    const stars = c.stars.map(s=>({x:rx+s[0]*rw, y:ry+s[1]*rh}));
+
+    // Lines (only if lit, with shimmer)
+    if(lit){
+      ctx.strokeStyle = `rgba(204,229,255,${0.18 + 0.1*Math.sin(now*0.001 + c.id.length)})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for(const [a,b] of c.lines){
+        ctx.moveTo(stars[a].x, stars[a].y);
+        ctx.lineTo(stars[b].x, stars[b].y);
+      }
+      ctx.stroke();
+    }
+    // Stars
+    for(const s of stars){
+      const tw = 0.4 + 0.5*Math.sin(now*0.001 + s.x*0.01);
+      if(lit){
+        ctx.fillStyle = '#cce5ff';
+        ctx.globalAlpha = 0.75 + 0.2*tw;
+        ctx.beginPath(); ctx.arc(s.x,s.y,2,0,Math.PI*2); ctx.fill();
+        ctx.globalAlpha = 0.25;
+        ctx.beginPath(); ctx.arc(s.x,s.y,7,0,Math.PI*2); ctx.fill();
+      }else{
+        ctx.fillStyle = '#888aac';
+        ctx.globalAlpha = 0.18 + 0.06*tw;
+        ctx.beginPath(); ctx.arc(s.x,s.y,1.4,0,Math.PI*2); ctx.fill();
+      }
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
+function hexPath(cx,cy,size){
+  ctx.beginPath();
+  for(let i=0;i<6;i++){
+    const a = (60*i - 30) * Math.PI/180;
+    const x = cx + size*Math.cos(a);
+    const y = cy + size*Math.sin(a);
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.closePath();
+}
+
+function drawHexGrid(){
+  ctx.save();
+  ctx.translate(viewCx, viewCy);
+
+  // Pre-collect tiles to draw in z-order
+  const cells = [];
+  for(let q=-5;q<=5;q++){
+    for(let r=Math.max(-5,-5-q);r<=Math.min(5,5-q);r++){
+      if(!isInWorld(q,r)) continue;
+      cells.push({q,r});
+    }
+  }
+
+  // 1) Empty / locked tiles
+  for(const c of cells){
+    const p = axialToPixel(c.q,c.r);
+    const inRange = isInBuildRadius(c.q,c.r);
+    const key = hexKey(c.q,c.r);
+    if(state.tiles[key]) continue;
+    hexPath(p.x,p.y,HEX_SIZE-2);
+    if(inRange){
+      ctx.fillStyle = 'rgba(255,255,255,0.012)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(180,168,255,0.12)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }else{
+      ctx.setLineDash([3,5]);
+      ctx.strokeStyle = 'rgba(140,128,200,0.07)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
+
+  // 2) Hover highlight
+  if(hoverHex && isInWorld(hoverHex.q,hoverHex.r) && !state.selected){
+    const p = axialToPixel(hoverHex.q,hoverHex.r);
+    const inRange = isInBuildRadius(hoverHex.q,hoverHex.r);
+    hexPath(p.x,p.y,HEX_SIZE-2);
+    ctx.fillStyle = inRange ? 'rgba(232,185,90,0.05)' : 'rgba(200,80,80,0.04)';
+    ctx.fill();
+    ctx.strokeStyle = inRange ? 'rgba(232,185,90,0.55)' : 'rgba(220,110,110,0.4)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+
+  // 3) Built tiles
+  for(const c of cells){
+    const key = hexKey(c.q,c.r);
+    const tile = state.tiles[key];
+    if(!tile) continue;
+    const p = axialToPixel(c.q,c.r);
+    const def = BUILDINGS[tile.type];
+    const tier = tile.level;
+
+    // Outer subtle glow
+    const pulse = 0.5 + 0.5*Math.sin(now*0.002 + (tile.id||0)*0.7);
+    ctx.save();
+    ctx.shadowColor = def.color;
+    ctx.shadowBlur = 14 + 6*pulse;
+    hexPath(p.x,p.y,HEX_SIZE-3);
+    ctx.fillStyle = hexToRgba(def.color, 0.07 + 0.04*pulse);
+    ctx.fill();
+    ctx.restore();
+
+    // Inner outline
+    hexPath(p.x,p.y,HEX_SIZE-3);
+    ctx.strokeStyle = hexToRgba(def.color, 0.55);
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+
+    // Icon
+    drawBuildingIcon(def.icon, p.x, p.y, HEX_SIZE*0.55, def.accent, pulse);
+
+    // Tier pips (small dots at the bottom of the hex)
+    for(let i=0;i<tier;i++){
+      ctx.beginPath();
+      ctx.arc(p.x + (i-1)*5, p.y + HEX_SIZE*0.55, 1.7, 0, Math.PI*2);
+      ctx.fillStyle = def.accent;
+      ctx.fill();
+    }
+  }
+
+  // 4) Ghost placement preview
+  if(state.selected && hoverHex && isInBuildRadius(hoverHex.q,hoverHex.r) && !state.tiles[hexKey(hoverHex.q,hoverHex.r)]){
+    const p = axialToPixel(hoverHex.q,hoverHex.r);
+    const def = BUILDINGS[state.selected];
+    const cost = buildingCost(state.selected);
+    const ok = canAfford(cost);
+    ctx.save();
+    ctx.globalAlpha = 0.5;
+    hexPath(p.x,p.y,HEX_SIZE-3);
+    ctx.fillStyle = ok ? hexToRgba(def.color,0.15) : 'rgba(200,80,80,0.15)';
+    ctx.fill();
+    ctx.strokeStyle = ok ? hexToRgba(def.color,0.7) : 'rgba(200,80,80,0.7)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    drawBuildingIcon(def.icon, p.x, p.y, HEX_SIZE*0.55, def.accent, 0.5);
+    ctx.restore();
+  }
+
+  // 5) Particles
+  for(const part of particles){
+    ctx.globalAlpha = Math.max(0,part.life);
+    ctx.shadowColor = part.color;
+    ctx.shadowBlur = 6;
+    ctx.fillStyle = part.color;
+    ctx.beginPath();
+    ctx.arc(part.x, part.y, part.size, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+
+  ctx.restore();
+}
+
+function drawBuildingIcon(icon, cx, cy, size, color, pulse){
+  ctx.save();
+  ctx.translate(cx,cy);
+  ctx.fillStyle = color;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.4;
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 8 + 4*pulse;
+  if(icon==='star'){
+    drawStar(0,0,size*0.55, size*0.22, 6);
+    ctx.fill();
+  }else if(icon==='diamond'){
+    ctx.beginPath();
+    ctx.moveTo(0,-size*0.55);
+    ctx.lineTo(size*0.4,0);
+    ctx.lineTo(0,size*0.55);
+    ctx.lineTo(-size*0.4,0);
+    ctx.closePath(); ctx.fill();
+  }else if(icon==='rings'){
+    for(let i=0;i<3;i++){
+      ctx.globalAlpha = 0.9 - i*0.25;
+      ctx.beginPath();
+      ctx.arc(0,0, size*0.22 + i*size*0.12, 0, Math.PI*2);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }else if(icon==='hexring'){
+    ctx.beginPath();
+    for(let i=0;i<6;i++){
+      const a = (60*i)*Math.PI/180;
+      const x=size*0.45*Math.cos(a), y=size*0.45*Math.sin(a);
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.closePath(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0,0,size*0.12,0,Math.PI*2); ctx.fill();
+  }else if(icon==='siphon'){
+    ctx.beginPath();
+    ctx.arc(0,0,size*0.5,0,Math.PI*2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(0,0,size*0.18,0,Math.PI*2);
+    ctx.fillStyle='#0a0820'; ctx.fill();
+    ctx.beginPath();
+    ctx.arc(0,0,size*0.18,0,Math.PI*2);
+    ctx.strokeStyle = color; ctx.stroke();
+  }
+  ctx.restore();
+}
+function drawStar(cx,cy,outerR,innerR,points){
+  ctx.beginPath();
+  for(let i=0;i<points*2;i++){
+    const r = i%2===0 ? outerR : innerR;
+    const a = (i*Math.PI)/points - Math.PI/2;
+    const x = cx + r*Math.cos(a);
+    const y = cy + r*Math.sin(a);
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.closePath();
+}
+function hexToRgba(hex, a){
+  const m = hex.replace('#','');
+  const n = parseInt(m,16);
+  const r = (n>>16)&255, g=(n>>8)&255, b=n&255;
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+// ----------------------------------------------------------------
+// UI — DOM updates
+// ----------------------------------------------------------------
+const $ = id => document.getElementById(id);
+const resourceBar = $('resourceBar');
+const buildList   = $('buildList');
+const objList     = $('objList');
+const constList   = $('constList');
+const upgradePopup= $('upgradePopup');
+const tooltip     = $('tooltip');
+const toasts      = $('toasts');
+
+const RESOURCE_LIST = [
+  {id:'stardust', name:'Stardust', cls:'stardust',  icon:'star'},
+  {id:'luminance',name:'Luminance',cls:'luminance', icon:'diamond'},
+  {id:'resonance',name:'Resonance',cls:'resonance', icon:'rings'},
+  {id:'voidsilver',name:'Voidsilver',cls:'voidsilver',icon:'siphon'},
+];
+
+// One-time resource bar build
+function buildResourceBar(){
+  resourceBar.innerHTML = '';
+  for(const r of RESOURCE_LIST){
+    const el = document.createElement('div');
+    el.className = `res ${r.cls}`;
+    el.id = 'res_'+r.id;
+    el.innerHTML = `
+      <div class="glyph">${svgIcon(r.icon)}</div>
+      <div class="val">0</div>
+      <div class="rate">+0.0/s</div>
+    `;
+    resourceBar.appendChild(el);
+    bindTooltip(el, ()=>({
+      title: r.name,
+      desc: resourceFlavor(r.id),
+      stats: resourceStatsLine(r.id),
+    }));
+  }
+}
+function resourceFlavor(id){
+  return {
+    stardust:'Raw motes of light, scattered through the dark. The base of every weaving.',
+    luminance:'Stardust refined past its first form. Cooler, sharper, more useful.',
+    resonance:'A standing wave. Not a thing but a tuning. Worth more than it weighs.',
+    voidsilver:'What the dark leaves behind when forced to speak.',
+  }[id];
+}
+function resourceStatsLine(id){
+  const r = currentRates()[id];
+  const sign = r>=0 ? '+' : '';
+  return `Net rate: <span>${sign}${r.toFixed(2)}/s</span>`;
+}
+
+// Build menu
+function rebuildBuildList(){
+  buildList.innerHTML = '';
+  for(const id in BUILDINGS){
+    const def = BUILDINGS[id];
+    if(!state.unlockedBuildings[id]) continue;
+    const cost = buildingCost(id);
+    const ok = canAfford(cost);
+    const el = document.createElement('button');
+    el.className = 'build-item' + (state.selected===id?' selected':'') + (ok?'':' disabled');
+    el.innerHTML = `
+      <div class="icon" style="color:${def.accent}">${svgIcon(def.icon)}</div>
+      <div>
+        <div class="name">${def.name}</div>
+        <div class="meta">${costLine(cost, ok)}</div>
+      </div>
+    `;
+    el.onclick = ()=>{
+      if(state.selected===id) state.selected = null;
+      else state.selected = id;
+      canvas.classList.toggle('placing', !!state.selected);
+      rebuildBuildList();
+    };
+    bindTooltip(el, ()=>({
+      title: def.name,
+      desc: def.desc,
+      stats: buildingStatsLine(def, cost),
+    }));
+    buildList.appendChild(el);
+  }
+}
+function costLine(cost, ok){
+  return Object.keys(cost).map(k=>{
+    const have = state.resources[k] >= cost[k];
+    return `<span class="cost-${k}${have?'':' cost-fail'}">${formatN(cost[k])} ${k[0].toUpperCase()}</span>`;
+  }).join(' ');
+}
+function buildingStatsLine(def, cost){
+  const tier = def.tiers[0];
+  let lines = [];
+  for(const k in tier.produces){
+    lines.push(`Produces <span>${tier.produces[k]}/s ${k}</span>`);
+  }
+  if(def.consumes){
+    for(const k in def.consumes){
+      lines.push(`Consumes <span>${def.consumes[k]}/s ${k}</span>`);
+    }
+  }
+  if(def.adjacencyBonus){
+    lines.push(`Adjacent ${def.adjacencyBonus.type}s: <span>+${(def.adjacencyBonus.perNeighbor*100)|0}% each</span>`);
+  }
+  if(def.auraBonus){
+    lines.push(`Aura: <span>+${(def.auraBonus.perTier*100)|0}%/tier to neighbors</span>`);
+  }
+  return lines.join('<br>');
+}
+
+// Objectives
+function rebuildObjList(){
+  objList.innerHTML = '';
+  // Show first 3 incomplete + 1 next, plus completed-tail
+  const order = OBJECTIVES.slice();
+  for(const o of order){
+    const done = state.objectivesDone[o.id] || o.check(state);
+    if(done) state.objectivesDone[o.id] = true;
+    const prog = o.getProgress ? o.getProgress(state) : null;
+    const el = document.createElement('div');
+    el.className = 'obj' + (done?' complete':'');
+    el.innerHTML = `
+      <div class="obj-title">${o.title}</div>
+      <div class="obj-desc">${o.desc}</div>
+      ${prog!=null ? `<div class="obj-prog"><div style="width:${Math.min(100, prog/o.target*100)}%"></div></div>` : ''}
+    `;
+    objList.appendChild(el);
+  }
+}
+
+// Constellations
+function rebuildConstList(){
+  constList.innerHTML = '';
+  for(const c of CONSTELLATIONS){
+    const lit = isLit(state, c.id);
+    const ok = !lit && canAfford(c.cost);
+    const el = document.createElement('div');
+    el.className = 'const' + (lit?' lit':'') + (ok?' affordable':'');
+    const cost = Object.keys(c.cost).map(k=>{
+      const have = state.resources[k] >= c.cost[k];
+      return `<span class="cost-${k}${have?'':' cost-fail'}">${formatN(c.cost[k])} ${k[0].toUpperCase()}</span>`;
+    }).join(' ');
+    el.innerHTML = `
+      <div class="row">
+        <div class="name">${c.name}</div>
+        ${lit?'<div class="check">✦</div>':''}
+      </div>
+      <div class="myth">${c.myth}</div>
+      ${lit ? '' : `<div class="cost">${cost}</div>`}
+      <div class="unlock">${describeUnlock(c)}</div>
+    `;
+    if(!lit){
+      el.onclick = ()=>{
+        if(canAfford(c.cost)) igniteConstellation(c);
+        else toast('Not enough light yet.', 'gold');
+      };
+    }
+    constList.appendChild(el);
+  }
+}
+function describeUnlock(c){
+  const u = c.unlock; const parts = [];
+  if(u.building) parts.push('Unlocks ' + BUILDINGS[u.building].name);
+  if(u.radius) parts.push('Expands void to radius ' + u.radius);
+  if(u.upgradeMax) parts.push('Raises forge cap to tier ' + u.upgradeMax);
+  if(u.victory) parts.push('Closes the work');
+  return parts.join(' · ');
+}
+
+// Resource bar update (called every frame, but cheap)
+let lastResValues = {stardust:0,luminance:0,resonance:0,voidsilver:0};
+function updateResourceBar(){
+  const rates = currentRates();
+  for(const r of RESOURCE_LIST){
+    const el = $('res_'+r.id);
+    if(!el) continue;
+    // Locked vs unlocked: locked until first unit gathered
+    const unlocked = state.stats['max'+r.id[0].toUpperCase()+r.id.slice(1)] > 0
+      || (r.id==='stardust');
+    el.classList.toggle('locked', !unlocked);
+    if(!unlocked) continue;
+    const v = state.resources[r.id]||0;
+    const valEl = el.querySelector('.val');
+    valEl.textContent = formatN(v);
+    if(v - lastResValues[r.id] > 0.001 && Math.floor(v)>Math.floor(lastResValues[r.id])){
+      valEl.classList.remove('res-flash'); void valEl.offsetWidth; valEl.classList.add('res-flash');
+    }
+    lastResValues[r.id] = v;
+    const rate = rates[r.id];
+    const sign = rate>=0 ? '+' : '';
+    el.querySelector('.rate').textContent = `${sign}${rate.toFixed(2)}/s`;
+  }
+}
+
+// SVG icons (inline, for UI; canvas uses its own draw routine)
+function svgIcon(id){
+  if(id==='star')   return `<svg viewBox="-10 -10 20 20" fill="currentColor"><polygon points="${makeStarPoints(8,3.4,6)}"/></svg>`;
+  if(id==='diamond')return `<svg viewBox="-10 -10 20 20" fill="currentColor"><polygon points="0,-8 7,0 0,8 -7,0"/></svg>`;
+  if(id==='rings')  return `<svg viewBox="-10 -10 20 20" fill="none" stroke="currentColor" stroke-width="1.4"><circle r="2.5"/><circle r="5"/><circle r="7.5"/></svg>`;
+  if(id==='hexring')return `<svg viewBox="-10 -10 20 20" fill="none" stroke="currentColor" stroke-width="1.4"><polygon points="${makeHexPoints(7)}"/><circle r="1.5" fill="currentColor"/></svg>`;
+  if(id==='siphon') return `<svg viewBox="-10 -10 20 20" fill="none" stroke="currentColor" stroke-width="1.4"><circle r="7"/><circle r="2.5" fill="currentColor"/></svg>`;
+  return '';
+}
+function makeStarPoints(outer,inner,points){
+  let s='';
+  for(let i=0;i<points*2;i++){
+    const r=i%2===0?outer:inner;
+    const a=(i*Math.PI)/points - Math.PI/2;
+    s += `${(r*Math.cos(a)).toFixed(2)},${(r*Math.sin(a)).toFixed(2)} `;
+  }
+  return s;
+}
+function makeHexPoints(r){
+  let s='';
+  for(let i=0;i<6;i++){
+    const a=(i*60)*Math.PI/180;
+    s += `${(r*Math.cos(a)).toFixed(2)},${(r*Math.sin(a)).toFixed(2)} `;
+  }
+  return s;
+}
+
+// Number formatting (idle-game style)
+function formatN(n){
+  if(n<10) return n.toFixed(1);
+  if(n<1000) return Math.floor(n).toString();
+  if(n<1e6) return (n/1000).toFixed(2)+'k';
+  if(n<1e9) return (n/1e6).toFixed(2)+'M';
+  if(n<1e12) return (n/1e9).toFixed(2)+'B';
+  return n.toExponential(2);
+}
+
+// Tooltip binding
+function bindTooltip(el, dataFn){
+  el.addEventListener('mouseenter', e=>{
+    const d = dataFn(); if(!d) return;
+    tooltip.innerHTML = `
+      <div class="tt-title">${d.title}</div>
+      <div class="tt-desc">${d.desc||''}</div>
+      ${d.stats?`<div class="tt-stats">${d.stats}</div>`:''}
+    `;
+    tooltip.classList.add('show');
+    positionTooltip(e.clientX, e.clientY);
+  });
+  el.addEventListener('mousemove', e=>positionTooltip(e.clientX,e.clientY));
+  el.addEventListener('mouseleave', ()=>tooltip.classList.remove('show'));
+}
+function positionTooltip(x,y){
+  const r = tooltip.getBoundingClientRect();
+  let tx = x+14, ty = y+14;
+  if(tx+r.width > W-8) tx = x - r.width - 14;
+  if(ty+r.height > H-8) ty = y - r.height - 10;
+  tooltip.style.left = tx+'px'; tooltip.style.top = ty+'px';
+}
+
+// Toasts
+function toast(msg, kind='gold'){
+  const el = document.createElement('div');
+  el.className = 'toast ' + kind;
+  el.textContent = msg;
+  toasts.appendChild(el);
+  setTimeout(()=>el.remove(), 4200);
+}
+
+// Upgrade popup
+function openUpgradePopup(tileKey, screenX, screenY){
+  const tile = state.tiles[tileKey];
+  if(!tile){ closeUpgradePopup(); return; }
+  upgradePopupTile = tileKey;
+  const def = BUILDINGS[tile.type];
+  const tier = def.tiers[tile.level-1];
+  const nextTier = def.tiers[tile.level];
+  const canUpgrade = nextTier!=null && tile.level < state.upgradeMax && tier.upgradeCost;
+  const cost = tier.upgradeCost;
+  const ok = canUpgrade && cost && canAfford(cost);
+
+  upgradePopup.innerHTML = `
+    <div class="up-header">
+      <div class="icon" style="color:${def.accent}">${svgIcon(def.icon)}</div>
+      <div class="info">
+        <div class="name">${def.name}</div>
+        <div class="level">Tier ${tile.level} ${tile.level>=state.upgradeMax?'(capped)':''}</div>
+      </div>
+    </div>
+    <div class="up-stats">${currentTileStatsText(tileKey, tile)}</div>
+    <button class="up-btn" id="doUpgrade" ${ok?'':'disabled'}>
+      ${canUpgrade ? `Upgrade · ${cost?costLine(cost, ok):''}` :
+        (tile.level>=state.upgradeMax ? 'Awaiting greater stars' : 'Maximum tier')}
+    </button>
+    <button class="up-btn demolish" id="doDemolish">Dismantle (refund 50%)</button>
+  `;
+  upgradePopup.classList.add('open');
+  // Position
+  const popW = 240;
+  let px = screenX + 16, py = screenY - 20;
+  if(px+popW > W-8) px = screenX - popW - 16;
+  if(py + 220 > H-8) py = H - 230;
+  if(py < 8) py = 8;
+  upgradePopup.style.left = px+'px';
+  upgradePopup.style.top = py+'px';
+
+  $('doUpgrade').onclick = ()=>{
+    if(!ok) return;
+    spend(cost); tile.level++;
+    toast(`${def.name} → tier ${tile.level}`,'cyan');
+    emitBurst(W/2,H/2, def.accent, 0); // dummy, real one below
+    const p = axialToPixel.apply(null, tileKey.split(',').map(Number));
+    emitBurst(viewCx+p.x, viewCy+p.y, def.accent, 18);
+    closeUpgradePopup();
+    refreshUI();
+  };
+  $('doDemolish').onclick = ()=>{
+    const cost0 = buildingCost(tile.type); // would-be next cost (rough)
+    // Refund using base cost progression
+    const refundFactor = 0.5;
+    const def2 = BUILDINGS[tile.type];
+    const n = countBuildings(state, tile.type);
+    const mult = Math.pow(def2.costGrowth, n-1);
+    const baseRefund = {};
+    for(const k in def2.baseCost) baseRefund[k] = Math.ceil(def2.baseCost[k]*mult*refundFactor);
+    for(const k in baseRefund) state.resources[k] += baseRefund[k];
+    delete state.tiles[tileKey];
+    toast(`Dismantled. Recovered some essence.`,'gold');
+    closeUpgradePopup();
+    refreshUI();
+  };
+}
+function currentTileStatsText(key, tile){
+  const r = computeTileRate(key,tile);
+  let s = '';
+  for(const k in r.produces){
+    s += `Producing <b>${(r.produces[k]*r.mult).toFixed(2)}/s ${k}</b><br>`;
+  }
+  if(r.consumes){
+    for(const k in r.consumes){
+      s += `Consuming <b>${r.consumes[k].toFixed(2)}/s ${k}</b><br>`;
+    }
+  }
+  if(r.mult !== 1){
+    s += `Modifier: <b>×${r.mult.toFixed(2)}</b>`;
+  }
+  if(!s) s = 'Boosts adjacent structures.';
+  return s;
+}
+function closeUpgradePopup(){
+  upgradePopupTile = null;
+  upgradePopup.classList.remove('open');
+}
+
+// ----------------------------------------------------------------
+// CONSTELLATION IGNITION
+// ----------------------------------------------------------------
+function igniteConstellation(c){
+  if(state.constLit[c.id]) return;
+  if(!canAfford(c.cost)) return;
+  spend(c.cost);
+  state.constLit[c.id] = true;
+  state.stats.totalLit++;
+  // Apply unlocks
+  const u = c.unlock;
+  if(u.building){ state.unlockedBuildings[u.building] = true; }
+  if(u.radius){ state.buildRadius = Math.max(state.buildRadius, u.radius); }
+  if(u.upgradeMax){ state.upgradeMax = Math.max(state.upgradeMax, u.upgradeMax); }
+  // VFX: burst at constellation's sky-region center + grid center
+  const reg = c.region;
+  const cx = (reg.x+reg.w/2)*W, cy=(reg.y+reg.h/2)*H;
+  emitBurst(cx-viewCx, cy-viewCy, '#cce5ff', 50); // particles are drawn in grid translation
+  // Also burst at world origin
+  emitBurst(0,0,'#f4d390', 30);
+  toast(`${c.name} ignites. ${describeUnlock(c)}.`,'cyan');
+  if(u.victory){
+    state.victory = true;
+    setTimeout(showVictory, 800);
+  }
+  refreshUI();
+  save();
+}
+
+function showVictory(){
+  $('modalBack').classList.add('open');
+  $('modal').innerHTML = `
+    <h1>POLARIS</h1>
+    <div class="tag">The axis turns again</div>
+    <p>You have reignited the eternal light. The sky is whole.</p>
+    <p style="margin-top:14px;color:var(--text-faint);font-size:11px;letter-spacing:1px">
+      Prototype complete. In the full game, this is where the first sky ascends and a new sky-scape unfolds — Southern, Galactic Core, beyond.
+    </p>
+    <button class="modal-btn" onclick="document.getElementById('modalBack').classList.remove('open')">Continue Weaving</button>
+  `;
+}
+
+// ----------------------------------------------------------------
+// INPUT
+// ----------------------------------------------------------------
+function screenToAxial(sx, sy){
+  const x = sx - viewCx; const y = sy - viewCy;
+  return pixelToAxial(x,y);
+}
+
+canvas.addEventListener('mousemove', e=>{
+  const rect = canvas.getBoundingClientRect();
+  const sx = e.clientX - rect.left;
+  const sy = e.clientY - rect.top;
+  hoverScreen.x = sx; hoverScreen.y = sy;
+  hoverHex = screenToAxial(sx, sy);
+  mouseInside = true;
+
+  // Tooltip on hover hex (only when a tile exists)
+  if(hoverHex && isInWorld(hoverHex.q,hoverHex.r)){
+    const k = hexKey(hoverHex.q, hoverHex.r);
+    const t = state.tiles[k];
+    if(t){
+      const def = BUILDINGS[t.type];
+      tooltip.innerHTML = `
+        <div class="tt-title">${def.name} <span style="color:var(--text-faint);font-size:10px;letter-spacing:2px;margin-left:6px">TIER ${t.level}</span></div>
+        <div class="tt-desc">${def.short}</div>
+        <div class="tt-stats">${currentTileStatsText(k,t)}</div>
+      `;
+      tooltip.classList.add('show');
+      positionTooltip(e.clientX, e.clientY);
+    }else{
+      tooltip.classList.remove('show');
+    }
+  }else{
+    tooltip.classList.remove('show');
+  }
+});
+canvas.addEventListener('mouseleave', ()=>{
+  mouseInside = false; hoverHex = null;
+  tooltip.classList.remove('show');
+});
+
+canvas.addEventListener('click', e=>{
+  if(!hoverHex) return;
+  const k = hexKey(hoverHex.q, hoverHex.r);
+  const existing = state.tiles[k];
+
+  if(existing){
+    // Open upgrade popup
+    openUpgradePopup(k, e.clientX, e.clientY);
+    return;
+  }
+  // Empty: try place
+  if(!state.selected){
+    closeUpgradePopup();
+    return;
+  }
+  if(!isInBuildRadius(hoverHex.q, hoverHex.r)){
+    toast('Outside the woven void.', 'gold');
+    return;
+  }
+  const cost = buildingCost(state.selected);
+  if(!canAfford(cost)){
+    toast('Not enough essence.', 'gold');
+    return;
+  }
+  spend(cost);
+  state.tiles[k] = {type: state.selected, level: 1, id: state.nextBuildingId++, placedAt: Date.now()};
+  const p = axialToPixel(hoverHex.q, hoverHex.r);
+  emitBurst(p.x, p.y, BUILDINGS[state.selected].accent, 12);
+  refreshUI();
+});
+canvas.addEventListener('contextmenu', e=>{
+  e.preventDefault();
+  state.selected = null;
+  canvas.classList.remove('placing');
+  rebuildBuildList();
+});
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape'){
+    state.selected = null;
+    canvas.classList.remove('placing');
+    closeUpgradePopup();
+    rebuildBuildList();
+  }
+  if(e.key===' '){
+    state.paused = !state.paused;
+    toast(state.paused?'Time held still.':'Time resumes.', 'cyan');
+  }
+});
+document.addEventListener('click', e=>{
+  // Click outside popup closes it
+  if(upgradePopupTile && !upgradePopup.contains(e.target) && e.target!==canvas){
+    closeUpgradePopup();
+  }
+});
+
+$('pauseBtn').onclick = ()=>{
+  state.paused = !state.paused;
+  toast(state.paused?'Time held still.':'Time resumes.', 'cyan');
+};
+$('resetBtn').onclick = ()=>{
+  if(confirm('Erase this weaving and begin again?')){
+    try{ localStorage.removeItem(SAVE_KEY); }catch(_){}
+    state = makeFreshState(); seedFreshGame();
+    refreshUI();
+    toast('A new sky begins.', 'gold');
+  }
+};
+$('beginBtn').onclick = ()=>{
+  $('modalBack').classList.remove('open');
+};
+
+// ----------------------------------------------------------------
+// SAVE / LOAD with offline simulation
+// Note: localStorage may be sandboxed in some embedded preview
+// environments. We wrap in try/catch and degrade silently.
+// ----------------------------------------------------------------
+function save(){
+  state.lastSave = Date.now();
+  try{
+    const payload = {
+      v:1,
+      resources:state.resources,
+      tiles:state.tiles,
+      nextBuildingId:state.nextBuildingId,
+      constLit:state.constLit,
+      buildRadius:state.buildRadius,
+      upgradeMax:state.upgradeMax,
+      objectivesDone:state.objectivesDone,
+      unlockedBuildings:state.unlockedBuildings,
+      stats:state.stats,
+      lastTick:state.lastTick,
+      lastSave:state.lastSave,
+      victory:state.victory,
+    };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(payload));
+  }catch(_){/* sandboxed: ignore */}
+}
+function load(){
+  try{
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(!raw) return false;
+    const d = JSON.parse(raw);
+    if(!d || d.v!==1) return false;
+    Object.assign(state.resources, d.resources||{});
+    state.tiles = d.tiles||{};
+    state.nextBuildingId = d.nextBuildingId||1;
+    state.constLit = d.constLit||{};
+    state.buildRadius = d.buildRadius||1;
+    state.upgradeMax = d.upgradeMax||2;
+    state.objectivesDone = d.objectivesDone||{};
+    state.unlockedBuildings = d.unlockedBuildings||{collector:true};
+    Object.assign(state.stats, d.stats||{});
+    state.lastTick = d.lastTick || Date.now();
+    state.lastSave = d.lastSave || Date.now();
+    state.victory = !!d.victory;
+    return true;
+  }catch(_){ return false; }
+}
+function applyOffline(){
+  const now = Date.now();
+  const elapsed = Math.min((now - state.lastTick)/1000, MAX_OFFLINE_S);
+  state.lastTick = now;
+  if(elapsed < 2) return; // ignore trivial gaps
+  // Simulate offline in 60-second chunks to stay sensible
+  let remaining = elapsed;
+  const step = 60;
+  while(remaining > 0){
+    const d = Math.min(step, remaining);
+    simulate(d);
+    remaining -= d;
+  }
+  // Show a soft toast summarizing
+  const mins = Math.floor(elapsed/60);
+  if(mins >= 1){
+    toast(`Stars wove while you slept — ${mins} min of progress.`, 'cyan');
+  }
+}
+
+// ----------------------------------------------------------------
+// MAIN LOOP
+// ----------------------------------------------------------------
+let lastFrame = performance.now();
+let tickAccum = 0;
+let saveAccum = 0;
+function loop(t){
+  const dt = Math.min(50, t - lastFrame); lastFrame = t; now = t;
+
+  if(!state.paused){
+    tickAccum += dt;
+    while(tickAccum >= TICK_MS){
+      simulate(TICK_MS/1000);
+      tickAccum -= TICK_MS;
+    }
+    state.lastTick = Date.now();
+    saveAccum += dt;
+    if(saveAccum >= AUTO_SAVE_MS){ saveAccum = 0; save(); }
+  }
+
+  updateParticles(dt/16.67);
+
+  // Render
+  ctx.clearRect(0,0,W,H);
+  drawBackground();
+  drawConstellationsSky();
+  drawHexGrid();
+
+  // Light UI refresh (cheap)
+  updateResourceBar();
+
+  requestAnimationFrame(loop);
+}
+
+// ----------------------------------------------------------------
+// REFRESH ALL
+// ----------------------------------------------------------------
+function refreshUI(){
+  rebuildBuildList();
+  rebuildObjList();
+  rebuildConstList();
+}
+
+
+
+// ----------------------------------------------------------------
+// DELUXE EXPANSION
+// Turns the prototype into a more complete clicker/strategy idle game:
+// guidance, active starfalls, rifts, research, action buttons, faster pacing.
+// ----------------------------------------------------------------
+const DELUXE = {
+  uiClock:0,
+  lastGuideKey:'',
+  original:{},
+};
+
+const RESEARCH = [
+  {id:'stellarLenses', name:'Stellar Lenses', desc:'All production +15%. Comets appear a little more often.', cost:{stardust:90}},
+  {id:'deepFurnaces', name:'Deep Furnaces', desc:'Lumen Furnaces produce +35% luminance.', cost:{stardust:220,luminance:35}},
+  {id:'choralMatrix', name:'Choral Matrix', desc:'Resonators gain stronger chain harmony.', cost:{luminance:260,resonance:16}},
+  {id:'voidCartography', name:'Void Cartography', desc:'Build radius expands by +1 and Void Siphons get more open-space yield.', cost:{luminance:900,resonance:70}},
+  {id:'autoWeaver', name:'Auto-Weaver', desc:'Every 20 seconds, the sky performs a free Star Sweep.', cost:{stardust:1800,luminance:700,resonance:70}},
+  {id:'riftEngine', name:'Rift Engine', desc:'Sealed rifts grant double rewards and remove more shadow.', cost:{luminance:3200,resonance:320,voidsilver:10}},
+];
+
+function enhanceState(s){
+  if(!s.meta) s.meta = {};
+  const m = s.meta;
+  if(m.version == null) m.version = 2;
+  if(m.xp == null) m.xp = 0;
+  if(m.level == null) m.level = 1;
+  if(m.shadow == null) m.shadow = 0;
+  if(m.wave == null) m.wave = 1;
+  if(m.starfallTimer == null) m.starfallTimer = 7;
+  if(m.riftTimer == null) m.riftTimer = 34;
+  if(m.autoSweepTimer == null) m.autoSweepTimer = 20;
+  if(m.overdrive == null) m.overdrive = 0;
+  if(m.sweepCooldown == null) m.sweepCooldown = 0;
+  if(m.overdriveCooldown == null) m.overdriveCooldown = 0;
+  if(m.focusCooldown == null) m.focusCooldown = 0;
+  if(!Array.isArray(m.comets)) m.comets = [];
+  if(!Array.isArray(m.rifts)) m.rifts = [];
+  if(!m.research) m.research = {};
+  if(!m.seen) m.seen = {};
+  return s;
+}
+function M(){ return enhanceState(state).meta; }
+
+enhanceState(state);
+
+function applyDeluxeBalance(){
+  BUILDINGS.collector.tiers[0].produces.stardust = 1.8;
+  BUILDINGS.collector.tiers[1].produces.stardust = 5.0;
+  BUILDINGS.collector.tiers[2].produces.stardust = 14.0;
+  BUILDINGS.collector.baseCost = {stardust:8};
+  BUILDINGS.collector.costGrowth = 1.38;
+  BUILDINGS.furnace.baseCost = {stardust:28};
+  BUILDINGS.furnace.costGrowth = 1.42;
+  BUILDINGS.furnace.consumes.stardust = 1.2;
+  BUILDINGS.furnace.tiers[0].produces.luminance = 0.75;
+  BUILDINGS.resonator.baseCost = {luminance:42};
+  BUILDINGS.resonator.costGrowth = 1.42;
+  BUILDINGS.resonator.consumes.luminance = 0.9;
+  BUILDINGS.resonator.adjacencyBonus.perNeighbor = 0.42;
+  BUILDINGS.conduit.baseCost = {stardust:90,luminance:28};
+  BUILDINGS.voidsiphon.baseCost = {luminance:260,resonance:20};
+
+  const costs = {
+    lyra:{stardust:32},
+    aquila:{stardust:210,luminance:42},
+    cygnus:{stardust:900,luminance:240,resonance:14},
+    orion:{stardust:3600,luminance:1400,resonance:80},
+    cassiopeia:{stardust:14000,luminance:5200,resonance:320},
+    draco:{stardust:52000,luminance:22000,resonance:1500,voidsilver:38},
+    andromeda:{stardust:180000,luminance:76000,resonance:5200,voidsilver:170},
+    polaris:{stardust:900000,luminance:360000,resonance:26000,voidsilver:900},
+  };
+  for(const c of CONSTELLATIONS){ if(costs[c.id]) c.cost = costs[c.id]; }
+}
+applyDeluxeBalance();
+
+// Wrap fresh state + starter setup.
+DELUXE.original.makeFreshState = makeFreshState;
+makeFreshState = function(){ return enhanceState(DELUXE.original.makeFreshState()); };
+DELUXE.original.seedFreshGame = seedFreshGame;
+seedFreshGame = function(){
+  DELUXE.original.seedFreshGame();
+  enhanceState(state);
+  state.resources.stardust = Math.max(state.resources.stardust, 16);
+  state.stats.maxStardust = Math.max(state.stats.maxStardust, state.resources.stardust);
+};
+
+// Production modifiers from research, overdrive and shadow.
+DELUXE.original.computeTileRate = computeTileRate;
+computeTileRate = function(key,tile){
+  const out = DELUXE.original.computeTileRate(key,tile);
+  const m = M();
+  let mult = 1;
+  if(m.research.stellarLenses) mult += 0.15;
+  if(m.overdrive > 0) mult += 0.65;
+  if(tile.type==='furnace' && m.research.deepFurnaces) mult += 0.35;
+  if(tile.type==='resonator' && m.research.choralMatrix) mult += 0.25;
+  if(tile.type==='voidsiphon' && m.research.voidCartography) mult += 0.30;
+  const shadowPenalty = Math.min(0.45, (m.shadow||0) * 0.0045);
+  out.mult *= Math.max(0.55, mult * (1-shadowPenalty));
+  return out;
+};
+
+// More complete save/load including the expansion state.
+save = function(){
+  state.lastSave = Date.now();
+  enhanceState(state);
+  try{
+    const payload = {
+      v:2,
+      resources:state.resources, tiles:state.tiles, nextBuildingId:state.nextBuildingId,
+      constLit:state.constLit, buildRadius:state.buildRadius, upgradeMax:state.upgradeMax,
+      objectivesDone:state.objectivesDone, unlockedBuildings:state.unlockedBuildings,
+      stats:state.stats, lastTick:state.lastTick, lastSave:state.lastSave,
+      victory:state.victory, meta:state.meta,
+    };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(payload));
+  }catch(_){/* localStorage may be unavailable */}
+};
+load = function(){
+  try{
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(!raw) return false;
+    const d = JSON.parse(raw);
+    if(!d || d.v!==2) return false;
+    Object.assign(state.resources, d.resources||{});
+    state.tiles = d.tiles||{};
+    state.nextBuildingId = d.nextBuildingId||1;
+    state.constLit = d.constLit||{};
+    state.buildRadius = d.buildRadius||1;
+    state.upgradeMax = d.upgradeMax||2;
+    state.objectivesDone = d.objectivesDone||{};
+    state.unlockedBuildings = d.unlockedBuildings||{collector:true};
+    Object.assign(state.stats, d.stats||{});
+    state.lastTick = d.lastTick || Date.now();
+    state.lastSave = d.lastSave || Date.now();
+    state.victory = !!d.victory;
+    state.meta = d.meta || {};
+    enhanceState(state);
+    return true;
+  }catch(_){ return false; }
+};
+
+// Active game simulation: comets, rifts, auto sweeps, level progression.
+DELUXE.original.simulate = simulate;
+simulate = function(dtSec){
+  DELUXE.original.simulate(dtSec);
+  if(dtSec > 1.1) return; // offline catch-up should not spawn timed events
+  updateDeluxeSystems(dtSec);
+};
+
+function updateDeluxeSystems(dt){
+  const m = M();
+  m.sweepCooldown = Math.max(0, m.sweepCooldown-dt);
+  m.overdriveCooldown = Math.max(0, m.overdriveCooldown-dt);
+  m.focusCooldown = Math.max(0, m.focusCooldown-dt);
+  m.overdrive = Math.max(0, m.overdrive-dt);
+  m.shadow = Math.max(0, m.shadow - dt*0.015);
+  m.starfallTimer -= dt;
+  m.riftTimer -= dt;
+  m.autoSweepTimer -= dt;
+
+  const cometInterval = m.research.stellarLenses ? 12 : 16;
+  if(m.starfallTimer <= 0){
+    spawnComet();
+    m.starfallTimer = cometInterval + Math.random()*9;
+  }
+  if(m.riftTimer <= 0 && state.stats.totalLit >= 1){
+    spawnRift();
+    m.riftTimer = Math.max(22, 46 - state.stats.totalLit*2) + Math.random()*15;
+  }
+  if(m.research.autoWeaver && m.autoSweepTimer <= 0){
+    m.autoSweepTimer = 20;
+    performStarSweep(true);
+  }
+
+  for(let i=m.comets.length-1;i>=0;i--){
+    const c = m.comets[i];
+    c.life -= dt;
+    c.y += c.vy*dt;
+    c.x += Math.sin(now*0.001+c.seed)*8*dt;
+    if(c.life <= 0) m.comets.splice(i,1);
+  }
+  for(let i=m.rifts.length-1;i>=0;i--){
+    const r = m.rifts[i];
+    r.life -= dt;
+    r.pulse += dt;
+    if(r.life <= 0){
+      m.rifts.splice(i,1);
+      m.shadow = Math.min(100, m.shadow + 9);
+      showEvent('Rift leaked shadow — production weakened');
+      toast('A rift leaked shadow. Seal the next one for rewards.', 'rose');
+    }
+  }
+  updateLevelFromXP();
+}
+
+function updateLevelFromXP(){
+  const m = M();
+  const next = levelXpNeed(m.level);
+  if(m.xp >= next){
+    m.level++;
+    m.xp = 0;
+    gain({stardust:20*m.level, luminance: Math.max(0, (m.level-2)*8)});
+    showEvent(`Weaver level ${m.level}`);
+    toast(`Weaver level ${m.level}. Bonus essence gathered.`, 'cyan');
+  }
+}
+function levelXpNeed(level){ return Math.floor(80 * Math.pow(1.42, level-1)); }
+function addXP(n){ M().xp += n; updateLevelFromXP(); }
+
+function spawnComet(){
+  const m = M();
+  if(m.comets.length >= 4) return;
+  const margin = 150;
+  m.comets.push({
+    id:Date.now()+Math.random(),
+    x:margin + Math.random()*Math.max(80,W-margin*2),
+    y:100 + Math.random()*Math.max(120,H-260),
+    vy:10 + Math.random()*10,
+    life:10 + Math.random()*5,
+    seed:Math.random()*1000,
+  });
+  showEvent('Starfall — click the falling star');
+}
+function spawnRift(){
+  const m = M();
+  if(m.rifts.length >= 2) return;
+  const margin = 180;
+  m.rifts.push({
+    id:Date.now()+Math.random(),
+    x:margin + Math.random()*Math.max(80,W-margin*2),
+    y:130 + Math.random()*Math.max(120,H-320),
+    life:18,
+    pulse:0,
+  });
+  showEvent('Void rift opening — click to seal');
+}
+
+function collectComet(c){
+  const lit = Math.max(1, state.stats.totalLit+1);
+  const reward = {
+    stardust: 16*lit + Math.random()*18*lit,
+    luminance: state.unlockedBuildings.furnace ? 4*lit + Math.random()*6*lit : 0,
+    resonance: state.unlockedBuildings.resonator ? Math.random()*2.2*lit : 0,
+  };
+  for(const k in reward){ if(reward[k] <= 0) delete reward[k]; }
+  gain(reward);
+  addXP(12 + lit*3);
+  floatingText(c.x,c.y,rewardText(reward),'#f4d390');
+  ring(c.x,c.y,'var(--gold-soft)');
+  emitScreenBurst(c.x,c.y,'#f4d390',22);
+  toast('Starfall harvested.', 'gold');
+}
+function sealRift(r){
+  const m = M();
+  const lit = Math.max(1, state.stats.totalLit+1);
+  const mult = m.research.riftEngine ? 2 : 1;
+  const reward = {
+    stardust: 34*lit*mult,
+    luminance: state.unlockedBuildings.furnace ? 12*lit*mult : 0,
+    resonance: state.unlockedBuildings.resonator ? 4*lit*mult : 0,
+    voidsilver: state.unlockedBuildings.voidsiphon ? 0.35*lit*mult : 0,
+  };
+  for(const k in reward){ if(reward[k] <= 0) delete reward[k]; }
+  gain(reward);
+  m.shadow = Math.max(0, m.shadow - (m.research.riftEngine ? 18 : 10));
+  addXP(24 + lit*5);
+  floatingText(r.x,r.y,'Rift sealed', '#cce5ff');
+  ring(r.x,r.y,'var(--cyan-soft)');
+  emitScreenBurst(r.x,r.y,'#cce5ff',32);
+  toast('Rift sealed. Shadow recedes.', 'cyan');
+}
+function rewardText(res){
+  return Object.entries(res).map(([k,v])=>`+${formatN(v)} ${k[0].toUpperCase()}`).join('  ');
+}
+
+// Capture clicks before normal hex placement when clicking active sky events.
+canvas.addEventListener('click', e=>{
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX-rect.left, y=e.clientY-rect.top;
+  const m = M();
+  for(let i=m.comets.length-1;i>=0;i--){
+    const c=m.comets[i];
+    if(Math.hypot(x-c.x,y-c.y)<34){
+      m.comets.splice(i,1); collectComet(c);
+      e.preventDefault(); e.stopImmediatePropagation();
+      refreshUI(); return;
+    }
+  }
+  for(let i=m.rifts.length-1;i>=0;i--){
+    const r=m.rifts[i];
+    if(Math.hypot(x-r.x,y-r.y)<42){
+      m.rifts.splice(i,1); sealRift(r);
+      e.preventDefault(); e.stopImmediatePropagation();
+      refreshUI(); return;
+    }
+  }
+}, true);
+
+// Draw active sky objects after the normal canvas render.
+DELUXE.original.drawHexGrid = drawHexGrid;
+drawHexGrid = function(){
+  DELUXE.original.drawHexGrid();
+  drawDeluxeEvents();
+};
+function drawDeluxeEvents(){
+  const m = M();
+  ctx.save();
+  for(const c of m.comets){
+    const a = Math.max(0, Math.min(1, c.life/3));
+    ctx.globalAlpha = Math.min(1, .55+a*.45);
+    ctx.shadowColor = '#f4d390'; ctx.shadowBlur = 18;
+    const grad = ctx.createRadialGradient(c.x,c.y,0,c.x,c.y,34);
+    grad.addColorStop(0,'rgba(244,211,144,.95)');
+    grad.addColorStop(.35,'rgba(232,185,90,.38)');
+    grad.addColorStop(1,'rgba(232,185,90,0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.arc(c.x,c.y,34,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle = 'rgba(244,211,144,.7)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(c.x-28,c.y-20); ctx.lineTo(c.x+8,c.y+8); ctx.stroke();
+    ctx.fillStyle = '#fff2c7'; ctx.beginPath(); ctx.arc(c.x,c.y,5,0,Math.PI*2); ctx.fill();
+  }
+  for(const r of m.rifts){
+    const pulse = .5 + .5*Math.sin(r.pulse*5);
+    ctx.globalAlpha = .85;
+    ctx.shadowColor = '#dc92e6'; ctx.shadowBlur = 20 + pulse*12;
+    ctx.strokeStyle = `rgba(220,146,230,${.35+pulse*.35})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for(let i=0;i<8;i++){
+      const a=i/8*Math.PI*2 + r.pulse*.7;
+      const rad=22 + (i%2)*12 + pulse*5;
+      const x=r.x+Math.cos(a)*rad, y=r.y+Math.sin(a)*rad;
+      if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.closePath(); ctx.stroke();
+    ctx.fillStyle = 'rgba(12,8,30,.7)'; ctx.beginPath(); ctx.arc(r.x,r.y,16+pulse*3,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#f0b8f6'; ctx.font = '10px Trebuchet MS'; ctx.textAlign='center';
+    ctx.fillText(Math.ceil(r.life), r.x, r.y+4);
+  }
+  ctx.restore(); ctx.globalAlpha=1; ctx.shadowBlur=0;
+}
+
+function emitScreenBurst(x,y,color,count){
+  for(let i=0;i<count;i++){
+    const ang=Math.random()*Math.PI*2;
+    const dist=8+Math.random()*26;
+    setTimeout(()=>floatingText(x+Math.cos(ang)*dist,y+Math.sin(ang)*dist,'✦',color,12),i*8);
+  }
+}
+function floatingText(x,y,text,color='#f4d390',size=18){
+  const layer = document.getElementById('floatingTextLayer'); if(!layer) return;
+  const el=document.createElement('div');
+  el.className='float-text'; el.textContent=text; el.style.left=x+'px'; el.style.top=y+'px'; el.style.color=color; el.style.fontSize=size+'px';
+  layer.appendChild(el); setTimeout(()=>el.remove(),1300);
+}
+function ring(x,y,color){
+  const layer = document.getElementById('floatingTextLayer'); if(!layer) return;
+  const el=document.createElement('div'); el.className='pulse-ring'; el.style.left=x+'px'; el.style.top=y+'px'; el.style.color=color;
+  layer.appendChild(el); setTimeout(()=>el.remove(),1200);
+}
+function showEvent(text){
+  const el=document.getElementById('eventBanner'); if(!el) return;
+  el.textContent=text; el.classList.add('show');
+  clearTimeout(showEvent._t); showEvent._t=setTimeout(()=>el.classList.remove('show'),2600);
+}
+
+// Action dock.
+function performStarSweep(auto=false){
+  const m=M();
+  if(!auto){ if(m.sweepCooldown>0) return; m.sweepCooldown = 14; }
+  const lit=Math.max(1,state.stats.totalLit+1);
+  const reward={stardust:24*lit + Math.random()*18*lit};
+  if(state.unlockedBuildings.furnace) reward.luminance = 5*lit;
+  if(state.unlockedBuildings.resonator) reward.resonance = 1.3*lit;
+  gain(reward); addXP(auto?5:10);
+  floatingText(W/2,H-108,rewardText(reward),'#f4d390');
+  showEvent(auto?'Auto-Weaver gathered a star sweep':'Star Sweep');
+  refreshUI();
+}
+function performOverdrive(){
+  const m=M();
+  if(m.overdriveCooldown>0) return;
+  const cost = state.unlockedBuildings.resonator ? {luminance:80,resonance:8} : {stardust:160,luminance:30};
+  if(!canAfford(cost)){ toast('Need more essence for overdrive.', 'gold'); return; }
+  spend(cost); m.overdrive = 24; m.overdriveCooldown = 55;
+  showEvent('Celestial Overdrive — production boosted');
+  toast('Production boosted for 24 seconds.', 'cyan');
+  refreshUI();
+}
+function performFocus(){
+  const m=M();
+  if(m.focusCooldown>0) return;
+  const next = nextConstellation();
+  if(!next){ toast('Every constellation is already awake.', 'cyan'); return; }
+  // Convert a small percentage of lower resources toward the next missing resource.
+  const missing = Object.keys(next.cost).filter(k=>state.resources[k] < next.cost[k]);
+  if(!missing.length){ toast(`${next.name} can be ignited now.`, 'cyan'); return; }
+  const target = missing[0];
+  let reward={}; reward[target]=Math.max(4, next.cost[target]*0.035);
+  gain(reward); addXP(8); m.focusCooldown=32;
+  floatingText(W/2,H-108,`Focused ${target}`, RESOURCE_COLORS[target]||'#fff');
+  showEvent(`Astral Focus moved you toward ${next.name}`);
+  refreshUI();
+}
+function nextConstellation(){ return CONSTELLATIONS.find(c=>!state.constLit[c.id]); }
+function actionCooldownPct(cd,max){ return Math.max(0, Math.min(100, 100-(cd/max*100))); }
+function rebuildActionDock(){
+  const dock=document.getElementById('actionDock'); if(!dock) return;
+  const m=M();
+  const canOver = state.unlockedBuildings.furnace;
+  const canFocus = state.stats.totalLit>=1;
+  dock.innerHTML = `
+    <button class="action-btn ${m.sweepCooldown<=0?'ready':'cooling'}" id="actSweep" style="--cool:${actionCooldownPct(m.sweepCooldown,14)}%">
+      <span class="a-title">Star Sweep</span><span class="a-sub">Free burst · ${m.sweepCooldown>0?Math.ceil(m.sweepCooldown)+'s':'ready'}</span>
+    </button>
+    <button class="action-btn ${canOver && m.overdriveCooldown<=0?'ready':'cooling'}" id="actOver" ${canOver?'':'disabled'} style="--cool:${actionCooldownPct(m.overdriveCooldown,55)}%">
+      <span class="a-title">Overdrive</span><span class="a-sub">+65% production · ${!canOver?'locked':m.overdriveCooldown>0?Math.ceil(m.overdriveCooldown)+'s':'ready'}</span>
+    </button>
+    <button class="action-btn ${canFocus && m.focusCooldown<=0?'ready':'cooling'}" id="actFocus" ${canFocus?'':'disabled'} style="--cool:${actionCooldownPct(m.focusCooldown,32)}%">
+      <span class="a-title">Astral Focus</span><span class="a-sub">push next goal · ${!canFocus?'light Lyra':m.focusCooldown>0?Math.ceil(m.focusCooldown)+'s':'ready'}</span>
+    </button>
+  `;
+  $('actSweep').onclick=()=>performStarSweep(false);
+  $('actOver').onclick=performOverdrive;
+  $('actFocus').onclick=performFocus;
+}
+
+// Research UI.
+function researchCostLine(cost){ return Object.keys(cost).map(k=>`<span class="cost-${k}${state.resources[k]>=cost[k]?'':' cost-fail'}">${formatN(cost[k])} ${k[0].toUpperCase()}</span>`).join(' '); }
+function rebuildResearch(){
+  const panel=document.getElementById('researchPanel'); const list=document.getElementById('researchList'); if(!panel||!list) return;
+  const m=M();
+  const visible = state.stats.maxLuminance>=15 || state.unlockedBuildings.furnace;
+  panel.classList.toggle('open', visible);
+  if(!visible) return;
+  list.innerHTML='';
+  for(const r of RESEARCH){
+    const done=!!m.research[r.id];
+    const ok=!done && canAfford(r.cost);
+    const el=document.createElement('button');
+    el.className='research-card'+(done?' done':'')+(ok?' affordable':'');
+    el.innerHTML=`<div class="r-name">${done?'✦ ':''}${r.name}</div><div class="r-desc">${r.desc}</div>${done?'':`<div class="r-cost">${researchCostLine(r.cost)}</div>`}`;
+    if(!done){
+      el.onclick=()=>{
+        if(!canAfford(r.cost)){ toast('Research needs more essence.', 'gold'); return; }
+        spend(r.cost); m.research[r.id]=true;
+        if(r.id==='voidCartography') state.buildRadius = Math.min(5, state.buildRadius+1);
+        addXP(30); toast(`${r.name} researched.`, 'cyan'); refreshUI();
+      };
+    }
+    list.appendChild(el);
+  }
+}
+
+// Better objective list: only shows completed compactly + immediate next goals.
+DELUXE.original.rebuildObjList = rebuildObjList;
+rebuildObjList = function(){
+  objList.innerHTML = '';
+  let shown=0;
+  let completed=0;
+  for(const o of OBJECTIVES){
+    const done = state.objectivesDone[o.id] || o.check(state);
+    if(done){ state.objectivesDone[o.id]=true; completed++; }
+  }
+  const summary=document.createElement('div');
+  summary.className='obj';
+  summary.innerHTML=`<div class="obj-title">Campaign Progress</div><div class="obj-desc">${completed}/${OBJECTIVES.length} threads complete · ${state.stats.totalLit}/8 constellations lit</div><div class="obj-prog"><div style="width:${Math.min(100,completed/OBJECTIVES.length*100)}%"></div></div>`;
+  objList.appendChild(summary);
+  for(const o of OBJECTIVES){
+    const done=!!state.objectivesDone[o.id];
+    if(done && shown>0) continue;
+    if(shown>=5) break;
+    const prog=o.getProgress?o.getProgress(state):null;
+    const el=document.createElement('div');
+    el.className='obj'+(done?' complete':'');
+    el.innerHTML=`<div class="obj-title">${o.title}</div><div class="obj-desc">${o.desc}</div>${prog!=null?`<div class="obj-prog"><div style="width:${Math.min(100,prog/o.target*100)}%"></div></div>`:''}`;
+    objList.appendChild(el); shown++;
+  }
+};
+
+function updateGuide(){
+  const box=document.getElementById('guideContent'); if(!box) return;
+  const m=M();
+  const next=nextActionHint();
+  const xpNeed=levelXpNeed(m.level);
+  box.innerHTML = `
+    <div class="guide-step">You are restoring a dead sky. Build a resource engine, click <b>Starfalls</b>, seal <b>Rifts</b>, research upgrades, and ignite all eight constellations.</div>
+    <div class="guide-next"><div class="label">Next best move</div><div class="body">${next.text}</div><div class="guide-meter"><div style="width:${next.pct}%"></div></div></div>
+    <div class="world-status">
+      <div class="status-card"><div class="k">Weaver</div><div class="v">Lv ${m.level}</div></div>
+      <div class="status-card ${m.shadow>25?'warn':''}"><div class="k">Shadow</div><div class="v">${Math.floor(m.shadow)}%</div></div>
+      <div class="status-card"><div class="k">XP</div><div class="v">${Math.floor(m.xp)}/${xpNeed}</div></div>
+      <div class="status-card"><div class="k">Overdrive</div><div class="v">${m.overdrive>0?Math.ceil(m.overdrive)+'s':'off'}</div></div>
+    </div>
+  `;
+}
+function nextActionHint(){
+  if(countBuildings(state,'collector')<2){
+    const cost=buildingCost('collector').stardust; return {text:`Build another Stardust Spire. You need ${formatN(cost)} stardust.`, pct:Math.min(100,state.resources.stardust/cost*100)};
+  }
+  if(!state.constLit.lyra){ return hintForConst('lyra','Ignite Lyra to unlock Lumen Furnaces.'); }
+  if(countBuildings(state,'furnace')<1){ const cost=buildingCost('furnace').stardust; return {text:`Place a Lumen Furnace. It turns stardust into luminance.`, pct:Math.min(100,state.resources.stardust/cost*100)}; }
+  if(!state.constLit.aquila){ return hintForConst('aquila','Ignite Aquila to unlock Resonators.'); }
+  if(countBuildings(state,'resonator')<2){ return {text:'Build Resonators next to each other. They become much stronger in chains.', pct:Math.min(100,state.resources.luminance/(buildingCost('resonator').luminance||1)*100)}; }
+  if(!state.constLit.cygnus){ return hintForConst('cygnus','Ignite Cygnus to unlock Aether Conduits.'); }
+  const n=nextConstellation();
+  if(n) return hintForConst(n.id,`Push resources toward ${n.name}.`);
+  return {text:'The sky is complete. Keep optimizing your constellation machine.', pct:100};
+}
+function hintForConst(id,text){
+  const c=constById(id); let pct=100;
+  for(const k in c.cost){ pct=Math.min(pct, state.resources[k]/c.cost[k]*100); }
+  return {text, pct:Math.max(0,Math.min(100,pct))};
+}
+
+DELUXE.original.updateResourceBar = updateResourceBar;
+updateResourceBar = function(){
+  DELUXE.original.updateResourceBar();
+  DELUXE.uiClock++;
+  if(DELUXE.uiClock % 12 === 0){ updateGuide(); rebuildActionDock(); }
+};
+DELUXE.original.refreshUI = refreshUI;
+refreshUI = function(){
+  DELUXE.original.refreshUI();
+  rebuildResearch(); rebuildActionDock(); updateGuide();
+};
+
+// Make constellation ignition feel like progression, not just spending.
+DELUXE.original.igniteConstellation = igniteConstellation;
+igniteConstellation = function(c){
+  const before = state.stats.totalLit;
+  DELUXE.original.igniteConstellation(c);
+  if(state.stats.totalLit > before){
+    addXP(50 + state.stats.totalLit*25);
+    const m=M();
+    m.shadow = Math.max(0,m.shadow-12);
+    showEvent(`${c.name} awakened — new systems online`);
+  }
+};
+
+// First-time onboarding events after Begin.
+const deluxeBegin = document.getElementById('beginBtn');
+if(deluxeBegin){
+  deluxeBegin.addEventListener('click',()=>{
+    setTimeout(()=>showEvent('Build spires · Click starfalls · Ignite Lyra'),250);
+    setTimeout(()=>toast('Tip: use Star Sweep for active progress while waiting.', 'gold'),900);
+  });
+}
+
+// ----------------------------------------------------------------
+// BOOT
+// ----------------------------------------------------------------
+function boot(){
+  resize();
+  buildResourceBar();
+  const loaded = load();
+  if(!loaded){
+    seedFreshGame();
+    $('modalBack').classList.add('open');
+  }else{
+    applyOffline();
+  }
+  refreshUI();
+  // Save on unload
+  window.addEventListener('beforeunload', save);
+  // Save on visibility change so mobile/backgrounding doesn't lose state
+  document.addEventListener('visibilitychange', ()=>{ if(document.hidden) save(); });
+  requestAnimationFrame(loop);
+}
+boot();
+</script>
+</body>
+</html>
